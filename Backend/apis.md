@@ -2,9 +2,7 @@
 
 This document outlines all REST APIs in the Dayflow HRMS backend to assist frontend developers with seamless integration.
 
-
 **Base URL**: `http://localhost:4000/api/v1` _(the port is controlled by `PORT` in `.env`)_
-
 
 > [!IMPORTANT]
 > All endpoints except public authentication endpoints (`/auth/login`, `/auth/signup`, `/auth/forgot-password`, `/auth/reset-password`) require an Authorization header:  
@@ -13,6 +11,7 @@ This document outlines all REST APIs in the Dayflow HRMS backend to assist front
 ---
 
 ## 🔑 Default Test Credentials
+
 Use these pre-seeded accounts for testing:
 
 - **Admin / HR Officer**:
@@ -27,9 +26,11 @@ Use these pre-seeded accounts for testing:
 ---
 
 ## 🔐 1. Authentication APIs
+
 **Base Path**: `/auth`
 
 ### `POST /auth/signup`
+
 - **Access**: Public
 - **Body**:
   ```json
@@ -44,6 +45,7 @@ Use these pre-seeded accounts for testing:
   ```
 
 ### `POST /auth/login`
+
 - **Access**: Public
 - **Body**:
   ```json
@@ -55,33 +57,41 @@ Use these pre-seeded accounts for testing:
 - **Response**: Returns `{ user, accessToken }`.
 
 ### `GET /auth/me`
+
 - **Access**: Authenticated
 - **Description**: Get currently logged-in user profile.
 
 ### `POST /auth/logout`
+
 - **Access**: Authenticated
 - **Description**: Revokes the JWT token.
 
 ### `POST /auth/forgot-password`
+
 - **Body**: `{ "email": "john@acme.com" }`
 
 ### `POST /auth/reset-password`
+
 - **Body**: `{ "token": "RESET_TOKEN", "password": "NewStrongPassword123!" }`
 
 ---
 
 ## 👥 2. Employee Profile Management APIs
+
 **Base Path**: `/employees`
 
 ### `GET /employees`
+
 - **Access**: Authenticated (All Roles)
 - **Description**: Get all employees list.
 
 ### `GET /employees/:id`
+
 - **Access**: Authenticated (All Roles)
 - **Description**: Get single employee details by ID or Employee Code.
 
 ### `PATCH /employees/:id`
+
 - **Access**: Authenticated
 - **Body**: `{ "phone": "+1999888777", "avatarUrl": "https://...", "designation": "Frontend Dev" }`
 - **Note**: Employees can update their contact/avatar info. Admins can update all details.
@@ -89,21 +99,26 @@ Use these pre-seeded accounts for testing:
 ---
 
 ## 📅 3. Attendance Management APIs
+
 **Base Path**: `/attendance`
 
 ### `POST /attendance/punch-in`
+
 - **Access**: Authenticated (Employee)
 - **Description**: Punch in for the current workday.
 
 ### `POST /attendance/punch-out`
+
 - **Access**: Authenticated (Employee)
 - **Description**: Punch out for the current workday.
 
 ### `GET /attendance/today`
+
 - **Access**: Authenticated
 - **Description**: Get status for today (checkInTime, checkOutTime, hoursWorked, isCheckedIn, status).
 
 ### `GET /attendance/history`
+
 - **Access**: Authenticated
 - **Query Params**: `?employeeId=<ID>` (Optional for HR/Admin)
 - **Description**: Get attendance log history.
@@ -111,9 +126,11 @@ Use these pre-seeded accounts for testing:
 ---
 
 ## 🏖️ 4. Leave & Time-Off Management APIs
+
 **Base Path**: `/leave`
 
 ### `GET /leave/requests`
+
 - **Access**: Authenticated
 - **Query Params**: `?employeeId=<ID>` (Optional)
 - **Behavior**:
@@ -121,6 +138,7 @@ Use these pre-seeded accounts for testing:
   - `HR` / `ADMIN` role: Can view **all** employee leave requests or filter by specific employee.
 
 ### `GET /leave/balance`
+
 - **Access**: Authenticated
 - **Query Params**: `?employeeId=<ID>` (HR/Admin only)
 - **Response**:
@@ -134,6 +152,7 @@ Use these pre-seeded accounts for testing:
   ```
 
 ### `POST /leave/apply`
+
 - **Access**: Authenticated (Employee)
 - **Body**:
   ```json
@@ -148,6 +167,7 @@ Use these pre-seeded accounts for testing:
   ```
 
 ### `PATCH /leave/requests/:id`
+
 - **Access**: Authenticated (**Admin / HR Officers Only**)
 - **Body**: `{ "status": "approved" }` or `{ "status": "rejected" }`
 - **Behavior**:
@@ -157,14 +177,17 @@ Use these pre-seeded accounts for testing:
 ---
 
 ## 💰 5. Payroll & Salary Management APIs
+
 **Base Path**: `/payroll`
 
 ### `GET /payroll/slips`
+
 - **Access**: Authenticated
 - **Query Params**: `?employeeId=<ID>` (Optional)
 - **Description**: Returns generated salary slips. Read-only for employees.
 
 ### `GET /payroll/structure`
+
 - **Access**: Authenticated
 - **Query Params**: `?employeeId=<ID>` (Optional)
 - **Response**: Returns full salary breakdown including automatic calculations:
@@ -194,37 +217,46 @@ Use these pre-seeded accounts for testing:
   ```
 
 ### `PUT /payroll/structure`
+
 - **Access**: Authenticated (**Admin / HR Officers Only**)
 - **Body**: Updates salary config parameters (e.g. `monthlyWage`, `basicPercent`, `pfEmployeePercent`, etc.).
 
 ### `GET /payroll/overview`
+
 - **Access**: Authenticated (**Admin / HR Officers Only**)
 - **Description**: High-level summary of total payroll, pending approvals, and upcoming pay date.
 
 ---
 
 ## 🤖 6. AI Assistant APIs
+
 **Base Path**: `/ai-assistant`
 
 ### `POST /ai-assistant/query`
+
 - **Body**: `{ "prompt": "How many leave days do I have remaining?" }`
 
 ### `GET /ai-assistant/suggestions`
+
 - **Description**: Get sample suggested prompts for the UI.
 
 ### `GET /ai-assistant/history` & `DELETE /ai-assistant/history`
+
 - **Description**: Manage conversation history.
 
 ---
 
 ## ☁️ 7. File Upload API
+
 **Base Path**: `/upload`
 
 ### `POST /upload/cloudinary`
+
 - **Access**: Authenticated
 - **Content-Type**: `multipart/form-data`
 - **Body**: File payload under field `file`
 - **Response**: `{ "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg" }`
+
 ## 🔐 Auth APIs
 
 **Base Path**: `/auth`

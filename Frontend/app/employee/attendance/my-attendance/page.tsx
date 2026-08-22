@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { PageContainer } from '@/components/ui/page-container';
-import { useAttendanceStore } from '@/store';
+import React, { useEffect, useState } from "react";
+import { PageContainer } from "@/components/ui/page-container";
+import { useAttendanceStore } from "@/store";
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,45 +14,89 @@ import {
   Plane,
   Filter,
   Search,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { CustomSelect } from '@/components/ui/custom-select';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { CustomSelect } from "@/components/ui/custom-select";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Coffee, LogIn, LogOut } from "lucide-react";
 
 export default function EmployeeMyAttendancePage() {
-  const { records } = useAttendanceStore();
+  const {
+    records,
+    summary,
+    isCheckedIn,
+    checkInTime,
+    isLoading,
+    fetchAttendance,
+    fetchToday,
+    checkIn,
+    checkOut,
+    startBreak,
+    endBreak,
+  } = useAttendanceStore();
 
   // Date Navigation State
-  const [selectedMonth, setSelectedMonth] = useState<'Oct' | 'Nov' | 'Dec'>('Oct');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState(() =>
+    new Date().toISOString().slice(0, 7),
+  );
+  const [selectedDate, setSelectedDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Filter employee's own records (Alex Rivera / current logged in employee)
-  const myRecords = records.filter(
-    (rec) => rec.employeeName === 'Alex Rivera' || rec.employeeId === 'usr_emp_02'
-  );
+  useEffect(() => {
+    void fetchAttendance(selectedMonth);
+    void fetchToday();
+  }, [fetchAttendance, fetchToday, selectedMonth]);
 
-  // Summary statistics calculation (Matching Wireframe 2)
-  const totalWorkingDays = 24;
-  const countOfDaysPresent = myRecords.filter((r) => r.status === 'Present' || r.status === 'Late').length || 22;
-  const leavesCount = myRecords.filter((r) => r.status === 'On Leave' || r.status === 'Absent').length || 2;
-  const payableDays = totalWorkingDays - (totalWorkingDays - countOfDaysPresent);
+  const myRecords = records;
+  const totalWorkingDays = summary?.totalWorkingDays || 0;
+  const countOfDaysPresent = summary?.daysPresent || 0;
+  const leavesCount = summary?.daysOnLeave || 0;
+  const payableDays = Math.max(
+    0,
+    totalWorkingDays - (summary?.daysAbsent || 0),
+  );
+  const weekendDays = (() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const days = new Date(year, month, 0).getDate();
+    return Array.from({ length: days }, (_, index) =>
+      new Date(year, month - 1, index + 1).getDay(),
+    ).filter((day) => day === 0 || day === 6).length;
+  })();
+  const monthLabel = new Date(
+    `${selectedMonth}-01T00:00:00`,
+  ).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
+  const changeMonth = (amount: number) => {
+    const date = new Date(`${selectedMonth}-01T00:00:00`);
+    date.setMonth(date.getMonth() + amount);
+    setSelectedMonth(date.toISOString().slice(0, 7));
+    setSelectedDate(date.toISOString().slice(0, 10));
+    setCurrentPage(1);
+  };
 
   // Filtered dataset
   const filteredRecords = myRecords.filter((rec) => {
-    const matchesSearch = rec.date.includes(search) || rec.status.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || rec.status.toLowerCase() === statusFilter.toLowerCase();
+    const matchesSearch =
+      rec.date.includes(search) ||
+      rec.status.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" ||
+      rec.status.toLowerCase() === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
   const totalPages = Math.ceil(filteredRecords.length / itemsPerPage) || 1;
   const paginatedRecords = filteredRecords.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   return (
@@ -71,7 +115,7 @@ export default function EmployeeMyAttendancePage() {
                 size="icon"
                 variant="outline"
                 className="h-8 w-8 cursor-pointer text-foreground"
-                onClick={() => setSelectedMonth(selectedMonth === 'Nov' ? 'Oct' : 'Nov')}
+                onClick={() => changeMonth(-1)}
                 title="Previous Month"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -80,7 +124,7 @@ export default function EmployeeMyAttendancePage() {
                 size="icon"
                 variant="outline"
                 className="h-8 w-8 cursor-pointer text-foreground"
-                onClick={() => setSelectedMonth(selectedMonth === 'Oct' ? 'Nov' : 'Dec')}
+                onClick={() => changeMonth(1)}
                 title="Next Month"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -89,7 +133,16 @@ export default function EmployeeMyAttendancePage() {
 
             <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-input bg-muted/30 text-xs font-bold text-foreground">
               <CalendarIcon className="h-3.5 w-3.5 text-accent" />
-              <span>{selectedMonth} 2025</span>
+              <DatePicker
+                value={selectedDate}
+                onChange={(date) => {
+                  setSelectedDate(date);
+                  setSelectedMonth(date.slice(0, 7));
+                  setCurrentPage(1);
+                }}
+                formatString="MMM yyyy"
+                className="h-8 border-0 bg-transparent px-1 shadow-none"
+              />
             </div>
           </div>
 
@@ -99,8 +152,12 @@ export default function EmployeeMyAttendancePage() {
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[11px] font-medium text-muted-foreground">Count of Days Present</p>
-              <p className="text-base font-extrabold text-foreground">{countOfDaysPresent} Days</p>
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Count of Days Present
+              </p>
+              <p className="text-base font-extrabold text-foreground">
+                {countOfDaysPresent} Days
+              </p>
             </div>
           </div>
 
@@ -110,8 +167,12 @@ export default function EmployeeMyAttendancePage() {
               <Plane className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[11px] font-medium text-muted-foreground">Leaves Count</p>
-              <p className="text-base font-extrabold text-foreground">{leavesCount} Days</p>
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Leaves Count
+              </p>
+              <p className="text-base font-extrabold text-foreground">
+                {leavesCount} Days
+              </p>
             </div>
           </div>
 
@@ -121,8 +182,12 @@ export default function EmployeeMyAttendancePage() {
               <Briefcase className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[11px] font-medium text-muted-foreground">Total Working Days</p>
-              <p className="text-base font-extrabold text-foreground">{totalWorkingDays} Days</p>
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Total Working Days
+              </p>
+              <p className="text-base font-extrabold text-foreground">
+                {totalWorkingDays} Days
+              </p>
             </div>
           </div>
 
@@ -132,8 +197,92 @@ export default function EmployeeMyAttendancePage() {
               <Clock className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-accent">Payable Days (Payroll)</p>
-              <p className="text-base font-extrabold text-foreground">{payableDays} Days</p>
+              <p className="text-[11px] font-semibold text-accent">
+                Payable Days (Payroll)
+              </p>
+              <p className="text-base font-extrabold text-foreground">
+                {payableDays} Days
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl border border-border bg-card shadow-2xs flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-violet-500/15 text-violet-600 flex items-center justify-center shrink-0 font-bold">
+              <Plane className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Paid Leave
+              </p>
+              <p className="text-base font-extrabold text-foreground">
+                {leavesCount} Days
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl border border-border bg-card shadow-2xs flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center shrink-0 font-bold">
+              <CalendarIcon className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Weekend
+              </p>
+              <p className="text-base font-extrabold text-foreground">
+                {weekendDays} Days
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4 shadow-2xs">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-foreground">
+                Today&apos;s attendance
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {checkInTime
+                  ? `Checked in at ${checkInTime}`
+                  : "No active attendance session"}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                onClick={() => void checkIn()}
+                disabled={isCheckedIn || isLoading}
+                className="h-9 cursor-pointer gap-1.5 bg-emerald-600 text-xs text-white hover:bg-emerald-700"
+              >
+                <LogIn className="h-3.5 w-3.5" /> Check In
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void checkOut()}
+                disabled={!isCheckedIn || isLoading}
+                variant="outline"
+                className="h-9 cursor-pointer gap-1.5 border-red-500/40 text-xs text-red-600 hover:bg-red-500/10"
+              >
+                <LogOut className="h-3.5 w-3.5" /> Check Out
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void startBreak()}
+                disabled={!isCheckedIn || isLoading}
+                variant="outline"
+                className="h-9 cursor-pointer gap-1.5 text-xs"
+              >
+                <Coffee className="h-3.5 w-3.5" /> Start Break
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void endBreak()}
+                disabled={!isCheckedIn || isLoading}
+                variant="outline"
+                className="h-9 cursor-pointer gap-1.5 text-xs"
+              >
+                <Coffee className="h-3.5 w-3.5" /> End Break
+              </Button>
             </div>
           </div>
         </div>
@@ -142,7 +291,11 @@ export default function EmployeeMyAttendancePage() {
         <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
           <AlertCircle className="h-4 w-4 text-accent shrink-0 mt-0.5" />
           <div>
-            <strong className="text-foreground">Attendance Basis Note:</strong> Attendance data serves as the foundation for payslip generation. Total payable days are calculated directly from attendance records. Any unpaid leave or missing attendance days automatically reduce the number of payable days during payslip computation.
+            <strong className="text-foreground">Attendance Basis Note:</strong>{" "}
+            Attendance data serves as the foundation for payslip generation.
+            Total payable days are calculated directly from attendance records.
+            Any unpaid leave or missing attendance days automatically reduce the
+            number of payable days during payslip computation.
           </div>
         </div>
 
@@ -164,10 +317,10 @@ export default function EmployeeMyAttendancePage() {
               value={statusFilter}
               onValueChange={setStatusFilter}
               options={[
-                { label: 'All Statuses', value: 'all' },
-                { label: 'Present', value: 'present' },
-                { label: 'Late', value: 'late' },
-                { label: 'On Leave', value: 'on leave' },
+                { label: "All Statuses", value: "all" },
+                { label: "Present", value: "present" },
+                { label: "Late", value: "late" },
+                { label: "On Leave", value: "on leave" },
               ]}
               size="sm"
               className="w-36 text-xs h-9"
@@ -179,8 +332,12 @@ export default function EmployeeMyAttendancePage() {
         <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
           {/* Table Subtitle Header */}
           <div className="p-4 bg-muted/30 border-b border-border flex items-center justify-between">
-            <h3 className="font-bold text-sm text-foreground">22, October 2025 Attendance Log</h3>
-            <span className="text-xs text-muted-foreground">Daily Working Time & Overtime Breakdown</span>
+            <h3 className="font-bold text-sm text-foreground">
+              {monthLabel} Attendance Log
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Daily Working Time & Overtime Breakdown
+            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -196,28 +353,48 @@ export default function EmployeeMyAttendancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {paginatedRecords.length > 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="p-8 text-center text-muted-foreground text-xs"
+                    >
+                      Loading attendance...
+                    </td>
+                  </tr>
+                ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((rec) => (
-                    <tr key={rec.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="p-4 font-mono font-bold text-foreground">{rec.date}</td>
-                      <td className="p-4 text-foreground font-semibold">{rec.checkIn}</td>
-                      <td className="p-4 text-foreground font-semibold">{rec.checkOut || '19:00'}</td>
-                      <td className="p-4 font-mono text-accent font-bold">{rec.workHours || '09:00'}</td>
+                    <tr
+                      key={rec.id}
+                      className="hover:bg-muted/30 transition-colors"
+                    >
+                      <td className="p-4 font-mono font-bold text-foreground">
+                        {rec.date}
+                      </td>
+                      <td className="p-4 text-foreground font-semibold">
+                        {rec.checkIn}
+                      </td>
+                      <td className="p-4 text-foreground font-semibold">
+                        {rec.checkOut || "--"}
+                      </td>
+                      <td className="p-4 font-mono text-accent font-bold">
+                        {rec.workHours || "00:00"}
+                      </td>
                       <td className="p-4 font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                        {rec.extraHours || '01:00'}
+                        {rec.extraHours || "00:00"}
                       </td>
                       <td className="p-4 text-right">
-                        {rec.status === 'Present' && (
+                        {rec.status === "Present" && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                             Present
                           </span>
                         )}
-                        {rec.status === 'Late' && (
+                        {rec.status === "Late" && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                             Late
                           </span>
                         )}
-                        {rec.status === 'On Leave' && (
+                        {rec.status === "On Leave" && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-500 border border-blue-500/30">
                             On Leave
                           </span>
@@ -227,7 +404,10 @@ export default function EmployeeMyAttendancePage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground text-xs">
+                    <td
+                      colSpan={6}
+                      className="p-8 text-center text-muted-foreground text-xs"
+                    >
                       No attendance logs found matching filters.
                     </td>
                   </tr>

@@ -266,7 +266,11 @@ export class AuthService {
 
     const collection = getUsers();
     const user = await collection.findOne({ email: normalizedEmail });
-    if (!user) throw new ApiError(404, "Pending registration not found. Please sign up again.");
+    if (!user)
+      throw new ApiError(
+        404,
+        "Pending registration not found. Please sign up again.",
+      );
     if (user.emailVerified)
       throw new ApiError(400, "Email is already verified.");
     const otp = createVerificationOtp();
@@ -340,6 +344,30 @@ export class AuthService {
 
       await companyCollection.insertOne(company);
       await getUsers().insertOne(user);
+      await getDatabase()
+        .collection("employees")
+        .updateOne(
+          { id: user.id },
+          {
+            $set: {
+              id: user.id,
+              employeeCode: `${company.companyCode}-ADMIN`,
+              name: user.name,
+              email: user.email,
+              role: "admin",
+              companyId: company.id,
+              status: "active",
+              joinDate: new Date().toISOString().slice(0, 10),
+            },
+            $setOnInsert: {
+              department: "Human Resources",
+              designation: "Administrator",
+              phone: user.phone || "",
+              avatarUrl: user.logo || "",
+            },
+          },
+          { upsert: true },
+        );
 
       // Clean up pending cache
       pendingRegistrations.delete(normalizedEmail);
@@ -464,7 +492,9 @@ export class AuthService {
         },
       },
     );
-    console.info(`[auth] Password reset token for ${user.email}: ${user.resetToken}`);
+    console.info(
+      `[auth] Password reset token for ${user.email}: ${user.resetToken}`,
+    );
     return user.resetToken;
   }
 
