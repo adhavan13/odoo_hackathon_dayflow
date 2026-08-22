@@ -1,17 +1,12 @@
 'use client';
 
-import React from 'react';
-import { PageContainer } from '@/components/ui/page-container';
-import { TimeOffView } from '@/components/leave/TimeOffView';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function MyLeaveRequestsPage() {
-  return (
-    <PageContainer
-      title="My Time Off & Applications"
-      subtitle="View your personal time off records, check available days balance, and submit new leave requests"
-      badge="Employee"
-    >
-      <TimeOffView forcedRole="employee" />
-    </PageContainer>
-  );
+export default function LeaveRequestsRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/employee/leave');
+  }, [router]);
+  return null;
 }

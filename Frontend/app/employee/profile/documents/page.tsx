@@ -1,11 +1,12 @@
-import { PageContainer } from '@/components/ui/page-container';
+'use client';
 
-export default function DocumentsPage() {
-  return (
-    <PageContainer
-      title="My Documents"
-      subtitle="Identity verification, contracts, certifications, and compliance files"
-      badge="Vault"
-    />
-  );
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function DocumentsRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/employee/profile/personal-info');
+  }, [router]);
+  return null;
 }

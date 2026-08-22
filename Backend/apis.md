@@ -407,7 +407,9 @@ Statuses are `PRESENT`, `ABSENT`, `HALF_DAY`, and `LEAVE`. `ADMIN` and `HR` can 
 | `GET`   | `/requests`     | Get all leave requests            |                                              |
 | `GET`   | `/balance`      | Get current user's leave balances |                                              |
 | `POST`  | `/apply`        | Apply for a leave                 | `{ type, startDate, endDate, days, reason }` |
-| `PATCH` | `/requests/:id` | Approve/Reject leave (Admin)      | `{ status: 'approved'\|'rejected' }`         |
+| `PATCH` | `/requests/:id` | Approve/Reject leave (Admin)      | `{ status: 'Approved'\|'Rejected' }`         |
+| `GET`   | `/holidays`     | Get all company holidays          |                                              |
+| `POST`  | `/holidays`     | Create company holiday / alert    | `{ date: string, name: string }`             |
 
 ---
 
@@ -444,3 +446,30 @@ Statuses are `PRESENT`, `ABSENT`, `HALF_DAY`, and `LEAVE`. `ADMIN` and `HR` can 
 | Method | Endpoint      | Description                      | Body / Query                 |
 | ------ | ------------- | -------------------------------- | ---------------------------- |
 | `POST` | `/cloudinary` | Upload file (e.g. avatars, docs) | `FormData` with field `file` |
+
+---
+
+## 🏖️ 5. Time Off / Leave Management APIs
+
+**Base Path**: `/leave`
+
+| Method  | Endpoint         | Access                          | Description                                                                              | Body / Query                                                                                            |
+| ------- | ---------------- | ------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `GET`   | `/requests`      | Authenticated                   | Get leave requests. Employees get only their own; Admin/HR get all or filter by employee | Query: `?employeeId=<id>` (optional for Admin/HR)                                                       |
+| `GET`   | `/balance`       | Authenticated                   | Get remaining paid, sick, and unpaid leave balances                                      | Query: `?employeeId=<id>` (optional for Admin/HR)                                                       |
+| `POST`  | `/apply`         | Authenticated                   | Apply for a new leave request                                                            | `{ employeeId, employeeName, leaveType, startDate, endDate, daysCount, reason, attachmentUrl }`         |
+| `PATCH` | `/requests/:id`  | Admin / HR Officer              | Approve or reject a leave request and auto-adjust balances                               | `{ status: "Approved" \| "Rejected" }`                                                                  |
+
+---
+
+## ⚡ 6. Recent Activity & Analytics APIs
+
+**Base Path**: `/activity`
+
+| Method | Endpoint     | Access        | Description                                                          | Body / Query                                            |
+| ------ | ------------ | ------------- | -------------------------------------------------------------------- | ------------------------------------------------------- |
+| `GET`  | `/`          | Authenticated | Get recent activity logs with category, action, and limit filters    | Query: `?category=attendance\|leave&action=...&limit=50` |
+| `GET`  | `/analytics` | Authenticated | Get summary analytics counters (total events, leaves, punches, etc.) |                                                         |
+| `POST` | `/`          | Authenticated | Log a new system activity event                                      | `{ action, category, description, details }`            |
+
+

@@ -11,7 +11,6 @@ import {
   User,
   LogOut,
   Bot,
-  Sparkles,
   Clock,
 } from 'lucide-react';
 import { useAuthStore, useSidebarStore, useAppStore, useAttendanceStore } from '@/store';
@@ -84,15 +83,44 @@ export function AppHeader() {
   const { isCheckedIn, checkInTime, checkInTimestamp, checkIn, checkOut } = useAttendanceStore();
 
   const [mounted, setMounted] = useState(false);
+  // Sync profile directly from localStorage and auth store
+  const [activeUser, setActiveUser] = useState(user);
+
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const syncProfile = () => {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('auth_user');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setActiveUser(parsed);
+            return;
+          } catch {}
+        }
+      }
+      setActiveUser(user);
+    };
+
+    syncProfile();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', syncProfile);
+      window.addEventListener('auth_user_updated', syncProfile);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', syncProfile);
+        window.removeEventListener('auth_user_updated', syncProfile);
+      }
+    };
+  }, [user]);
 
   const activeRole = pathname.startsWith('/employee')
     ? 'employee'
     : pathname.startsWith('/admin')
     ? 'admin'
-    : role;
+    : activeUser?.role || role;
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -123,6 +151,9 @@ export function AppHeader() {
     setShowLogoutConfirm(false);
     router.push('/');
   };
+
+  const displayAvatar = mounted && user?.avatarUrl ? user.avatarUrl : '/user.png';
+  const displayName = mounted && user?.name ? user.name : 'User';
 
   return (
     <>
@@ -162,7 +193,6 @@ export function AppHeader() {
         <div className="flex items-center gap-2 md:gap-3">
           {/* Systray Check IN / Check OUT Widget */}
           <div className="flex items-center gap-2 p-1 px-2.5 rounded-xl border border-border bg-card shadow-2xs">
-            {/* Status Dot: Red when checked out, Green when checked in */}
             <span
               className={`h-2.5 w-2.5 rounded-full shrink-0 transition-colors ${
                 isCheckedIn ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
@@ -247,39 +277,88 @@ export function AppHeader() {
                 className="flex items-center gap-2 pl-2 outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-accent rounded-full p-1 transition-colors hover:bg-muted/50"
               >
                 <div className="h-8 w-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
-                  <img src={user?.avatarUrl || '/user.png'} alt={user?.name || 'User'} className="h-full w-full object-cover" />
+                  {mounted && activeUser?.avatarUrl ? (
+                    <img
+                      src={activeUser.avatarUrl}
+                      alt={activeUser.name || 'User'}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <span>{(activeUser?.name || 'U').charAt(0).toUpperCase()}</span>
+                  )}
                 </div>
                 <div className="hidden sm:flex flex-col text-left">
-                  <span suppressHydrationWarning className="text-xs font-semibold leading-tight">{user?.name || 'User'}</span>
-                  <span suppressHydrationWarning className="text-[10px] text-muted-foreground capitalize">{activeRole}</span>
+                  <span suppressHydrationWarning className="text-xs font-semibold leading-tight text-foreground">
+                    {mounted ? (activeUser?.name || 'User') : 'Loading...'}
+                  </span>
+                  <span suppressHydrationWarning className="text-[10px] text-muted-foreground capitalize">
+                    {mounted ? (activeUser?.designation || activeRole) : ''}
+                  </span>
                 </div>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60 mt-1">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-bold leading-none text-foreground">{user?.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                  {user?.employeeId && (
-                    <p className="text-[11px] text-accent font-mono font-medium pt-0.5">
-                      ID: {user.employeeId}
-                    </p>
-                  )}
+            <DropdownMenuContent align="end" className="w-72 mt-1 p-2 shadow-xl border-border bg-card">
+              <DropdownMenuLabel className="font-normal p-2.5 rounded-lg bg-accent/5 border border-accent/15">
+                <div className="flex items-start gap-3">
+                  <div className="h-11 w-11 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-sm overflow-hidden shrink-0 shadow-2xs">
+                    {activeUser?.avatarUrl ? (
+                      <img
+                        src={activeUser.avatarUrl}
+                        alt={activeUser.name || 'User Profile'}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span>{(activeUser?.name || 'U').charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-sm font-bold leading-tight text-foreground truncate">
+                        {activeUser?.name || 'User Profile'}
+                      </p>
+                      <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-accent/20 text-accent shrink-0">
+                        {activeUser?.role || activeRole}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{activeUser?.email || 'No email registered'}</p>
+                    {activeUser?.designation && (
+                      <p className="text-[11px] font-medium text-foreground/80 truncate mt-1">
+                        {activeUser.designation}
+                      </p>
+                    )}
+                    {activeUser?.department && (
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {activeUser.department}
+                      </p>
+                    )}
+                    {activeUser?.employeeId && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-mono font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded w-fit border border-accent/20">
+                        <span>ID:</span>
+                        <span>{activeUser.employeeId}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleMyProfileClick} className="cursor-pointer gap-2">
-                <User className="h-4 w-4 shrink-0" />
-                <span>My Profile</span>
+              <DropdownMenuSeparator className="my-1.5" />
+              <DropdownMenuItem onClick={handleMyProfileClick} className="cursor-pointer gap-2 py-2">
+                <User className="h-4 w-4 shrink-0 text-accent" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold">My Profile & Settings</span>
+                  <span className="text-[10px] text-muted-foreground">View personal details & security</span>
+                </div>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="my-1.5" />
               <DropdownMenuItem
                 variant="destructive"
                 onClick={() => setShowLogoutConfirm(true)}
-                className="cursor-pointer gap-2"
+                className="cursor-pointer gap-2 py-2"
               >
                 <LogOut className="h-4 w-4 shrink-0" />
-                <span>Log Out</span>
+                <span className="text-xs font-semibold">Log Out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -2,16 +2,16 @@
 
 import React from 'react';
 import { PageContainer } from '@/components/ui/page-container';
-import { TimeOffView } from '@/components/leave/TimeOffView';
+import { EmployeeLeaveCalendarView } from '@/components/leave/EmployeeLeaveCalendarView';
 
 export default function EmployeeLeaveCalendarPage() {
   return (
     <PageContainer
-      title="My Time Off Calendar"
-      subtitle="Full 12-month annual calendar view highlighting your approved, pending, and refused time off alongside public holidays"
-      badge="Employee"
+      title="Leave Calendar & Public Holidays"
+      subtitle="Interactive 12-month annual schedule tracking your leave days alongside 2026 official public holidays"
+      badge="Calendar & Holidays"
     >
-      <TimeOffView forcedRole="employee" />
+      <EmployeeLeaveCalendarView />
     </PageContainer>
   );
 }
