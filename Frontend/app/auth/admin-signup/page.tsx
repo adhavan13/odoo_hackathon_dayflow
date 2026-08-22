@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Building2,
@@ -16,6 +16,10 @@ import {
   Zap,
   Clock,
   Banknote,
+  KeyRound,
+  RefreshCw,
+  ArrowLeft,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store';
 import { uploadToCloudinary } from '@/utils/cloudinary';
@@ -39,7 +43,29 @@ export default function AdminSignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { signupWithBackend, setAuth } = useAuthStore();
+  // OTP Verification Step & 60-Second Timer State
+  const [isOtpStep, setIsOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(60);
+
+  const { signupWithBackend, sendOtpWithBackend, verifyOtpWithBackend } = useAuthStore();
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isOtpStep && timerSeconds > 0) {
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isOtpStep, timerSeconds]);
+
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -62,8 +88,20 @@ export default function AdminSignUpPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!companyName.trim() || !name.trim() || !email.trim() || !password.trim()) {
+    if (!companyName.trim() || !name.trim() || !email.trim() || !phone.trim() || !password.trim()) {
       snackbar.error('Please fill in all required fields.');
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail.endsWith('@gmail.com')) {
+      snackbar.error('Please enter a corporate email address. Personal @gmail.com domains are not allowed.');
+      return;
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      snackbar.error('Please enter a valid 10-digit Indian mobile number (e.g. 9036462813).');
       return;
     }
 
@@ -80,7 +118,7 @@ export default function AdminSignUpPage() {
     setIsLoading(true);
 
     try {
-      // Call Backend registration endpoint /api/auth/signup
+      // Step 1: Register company & user via Backend
       await signupWithBackend({
         companyName: companyName.trim(),
         name: name.trim(),
@@ -92,34 +130,57 @@ export default function AdminSignUpPage() {
       });
 
       setIsLoading(false);
-      if (typeof window !== 'undefined') {
-        window.location.href = '/admin/dashboard/overview';
-      }
+      setIsOtpStep(true);
+      setTimerSeconds(60); // Start 1-minute OTP countdown
     } catch (err: any) {
-      // Fallback for demo mode
-      const newAdmin = {
-        id: 'usr_admin_' + Date.now(),
-        name: name,
-        email: email,
-        role: 'admin' as const,
-        avatarUrl: logoUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-        department: 'Human Resources & Executive',
-        designation: 'HR Admin / Founder',
-      };
+      setIsLoading(false);
+    }
+  };
 
-      setAuth(newAdmin, 'mock_jwt_token_' + Date.now());
-      snackbar.info(`Registered ${companyName} (Demo Mode)`);
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp.trim() || otp.trim().length !== 6) {
+      snackbar.error('Please enter a valid 6-digit OTP code.');
+      return;
+    }
+
+    if (timerSeconds === 0) {
+      snackbar.error('OTP code has expired. Please click Resend OTP to receive a new code.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Step 2: Verify OTP via Backend API
+      await verifyOtpWithBackend(email.trim(), otp.trim());
       setIsLoading(false);
 
       if (typeof window !== 'undefined') {
         window.location.href = '/admin/dashboard/overview';
       }
+    } catch (err) {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (timerSeconds > 0) return;
+
+    setIsResending(true);
+    try {
+      await sendOtpWithBackend(email.trim());
+      setTimerSeconds(60); // Reset 1-minute OTP countdown
+      setOtp('');
+    } catch (err) {
+      // Toast handled by store
+    } finally {
+      setIsResending(false);
     }
   };
 
   return (
     <div className="h-screen w-full overflow-hidden bg-background text-foreground flex flex-col lg:flex-row selection:bg-accent selection:text-accent-foreground">
-      {/* Left Column: Project Branding & Registration Feature Showcase (Fixed) */}
+      {/* Left Column: Project Branding & Registration Feature Showcase */}
       <div className="lg:w-1/2 h-full bg-gradient-to-br from-accent/25 via-background to-accent/10 border-b lg:border-b-0 lg:border-r border-border p-6 lg:p-12 flex flex-col justify-between relative overflow-hidden shrink-0">
         <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-accent/20 blur-3xl pointer-events-none" />
 
@@ -200,180 +261,267 @@ export default function AdminSignUpPage() {
         </div>
       </div>
 
-      {/* Right Column: Registration Form Section (Scrollable inside form side only) */}
+      {/* Right Column: Registration & OTP Form Section */}
       <div className="lg:w-1/2 h-full overflow-y-auto p-6 sm:p-10 lg:p-12 flex flex-col justify-start lg:justify-center items-center">
         <div className="w-full max-w-lg space-y-6">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Register Organization Account</h2>
-            <p className="text-xs text-muted-foreground">Fill in your company details to set up the HR portal</p>
-          </div>
+          {!isOtpStep ? (
+            /* STEP 1: COMPANY REGISTRATION FORM */
+            <>
+              <div className="space-y-1">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">Register Organization Account</h2>
+                <p className="text-xs text-muted-foreground">Fill in your company details to set up the HR portal</p>
+              </div>
 
-          {/* Form Card */}
-          <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm space-y-5">
-            <form onSubmit={handleSignUp} className="space-y-4">
-              {/* Company Name & Upload Logo */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Company Name</Label>
-                <div className="flex gap-2 items-center">
-                  <div className="relative flex-1">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="e.g. Odoo India Ltd"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      className="pl-9 h-10 text-xs bg-muted/20"
-                      required
-                    />
+              <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm space-y-5">
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  {/* Company Name & Upload Logo */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground">Company Name</Label>
+                    <div className="flex gap-2 items-center">
+                      <div className="relative flex-1">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder="e.g. Odoo India Ltd"
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          className="pl-9 h-10 text-xs bg-muted/20"
+                          required
+                        />
+                      </div>
+
+                      <label
+                        htmlFor="logo-upload-signup"
+                        className="relative cursor-pointer shrink-0 transition-transform hover:scale-105"
+                        title={logoUrl ? "Click to change company logo" : "Upload company logo"}
+                      >
+                        {logoUrl ? (
+                          <div className="relative h-10 w-10 rounded-full border-2 border-accent bg-accent/15 overflow-hidden shadow-md flex items-center justify-center group/logo">
+                            <img src={logoUrl} alt="Company Logo" className="h-full w-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity text-white text-[9px] font-bold uppercase tracking-wider">
+                              Edit
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="h-10 px-3 rounded-lg border border-accent/40 bg-accent/15 text-accent text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:bg-accent/25 transition-colors">
+                            <Upload className="h-4 w-4" />
+                            <span className="hidden sm:inline">{isUploadingLogo ? 'Uploading...' : 'Upload Logo'}</span>
+                          </div>
+                        )}
+                      </label>
+                      <input
+                        id="logo-upload-signup"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                    </div>
+                    {logoUrl && (
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1 pt-0.5">
+                        <Check className="h-3 w-3" /> Logo attached. Click circle to change.
+                      </p>
+                    )}
                   </div>
 
-                  <label
-                    htmlFor="logo-upload-signup"
-                    className="relative cursor-pointer shrink-0 transition-transform hover:scale-105"
-                    title={logoUrl ? "Click to change company logo" : "Upload company logo"}
+                  {/* Admin Full Name */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="e.g. Sarah Jenkins"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="pl-9 h-10 text-xs bg-muted/20"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Corporate Email */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground">Corporate Email (No @gmail.com)</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        placeholder="sarah.jenkins@company.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-9 h-10 text-xs bg-muted/20"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground">Indian Mobile Number (10-Digit)</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="tel"
+                        maxLength={10}
+                        placeholder="9036462813"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        className="pl-9 h-10 text-xs bg-muted/20"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Create password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="pl-9 pr-10 h-10 text-xs bg-muted/20"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground">Confirm Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Confirm password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="pl-9 pr-10 h-10 text-xs bg-muted/20"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full h-10 bg-accent text-accent-foreground hover:bg-accent/90 font-bold text-xs uppercase tracking-wider cursor-pointer"
                   >
-                    {logoUrl ? (
-                      <div className="relative h-10 w-10 rounded-full border-2 border-accent bg-accent/15 overflow-hidden shadow-md flex items-center justify-center group/logo">
-                        <img src={logoUrl} alt="Company Logo" className="h-full w-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity text-white text-[9px] font-bold uppercase tracking-wider">
-                          Edit
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="h-10 px-3 rounded-lg border border-accent/40 bg-accent/15 text-accent text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:bg-accent/25 transition-colors">
-                        <Upload className="h-4 w-4" />
-                        <span className="hidden sm:inline">{isUploadingLogo ? 'Uploading...' : 'Upload Logo'}</span>
-                      </div>
-                    )}
-                  </label>
-                  <input
-                    id="logo-upload-signup"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                  />
-                </div>
-                {logoUrl && (
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1 pt-0.5">
-                    <Check className="h-3 w-3" /> Logo attached. Click circle to change.
+                    {isLoading ? 'Registering Organization...' : 'Sign Up & Request OTP →'}
+                  </Button>
+                </form>
+
+                {/* Already have an account */}
+                <div className="pt-3 border-t border-border/60 text-center text-xs">
+                  <p className="text-muted-foreground">
+                    Already have an account?{' '}
+                    <Link href="/" className="font-semibold text-accent hover:underline">
+                      Sign In
+                    </Link>
                   </p>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* STEP 2: OTP EMAIL VERIFICATION SCREEN WITH 1-MIN TIMER */
+            <>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setIsOtpStep(false)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline mb-2 cursor-pointer"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" /> Back to Company Details
+                </button>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">Verify Email OTP</h2>
+                <p className="text-xs text-muted-foreground">
+                  We sent a 6-digit verification code to <span className="font-semibold text-foreground">{email}</span>
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm space-y-5">
+                {/* 1-Minute Countdown Status Banner */}
+                {timerSeconds > 0 ? (
+                  <div className="p-3 rounded-xl bg-accent/10 border border-accent/25 text-foreground text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-medium">
+                      <Clock className="h-4 w-4 text-accent shrink-0 animate-pulse" />
+                      <span>OTP valid in email inbox</span>
+                    </div>
+                    <code className="font-mono text-xs font-bold text-accent bg-accent/15 px-2 py-0.5 rounded">
+                      {formatTimer(timerSeconds)}
+                    </code>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-900 dark:text-red-200 text-xs flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
+                    <span>OTP code has expired. Please click <strong>Resend OTP</strong> below to get a new code.</span>
+                  </div>
                 )}
-              </div>
 
-              {/* Admin Full Name */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="e.g. Sarah Jenkins"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-9 h-10 text-xs bg-muted/20"
-                    required
-                  />
-                </div>
-              </div>
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground">Enter 6-Digit OTP</Label>
+                    <div className="relative">
+                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        maxLength={6}
+                        placeholder="123456"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                        className="pl-9 h-11 text-base tracking-widest font-mono text-center font-bold bg-muted/20"
+                        required
+                      />
+                    </div>
+                  </div>
 
-              {/* Corporate Email */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Corporate Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="email"
-                    placeholder="sarah.jenkins@odoo.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-9 h-10 text-xs bg-muted/20"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Phone */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Phone Number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="tel"
-                    placeholder="+1 (555) 019-2834"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="pl-9 h-10 text-xs bg-muted/20"
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Create password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9 pr-10 h-10 text-xs bg-muted/20"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  <Button
+                    type="submit"
+                    disabled={isLoading || otp.length !== 6 || timerSeconds === 0}
+                    className="w-full h-10 bg-accent text-accent-foreground hover:bg-accent/90 font-bold text-xs uppercase tracking-wider cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                    {isLoading ? 'Verifying OTP...' : 'Verify Email & Access Dashboard →'}
+                  </Button>
+                </form>
+
+                <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Didn&apos;t receive code?</span>
+                  {timerSeconds > 0 ? (
+                    <span className="text-muted-foreground/70 font-medium text-[11px] flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Resend OTP in {timerSeconds}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={isResending}
+                      className="font-bold text-accent hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${isResending ? 'animate-spin' : ''}`} />
+                      {isResending ? 'Sending New OTP...' : 'Resend OTP'}
+                    </button>
+                  )}
                 </div>
               </div>
-
-              {/* Confirm Password */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">Confirm Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-9 pr-10 h-10 text-xs bg-muted/20"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-10 bg-accent text-accent-foreground hover:bg-accent/90 font-bold text-xs uppercase tracking-wider cursor-pointer"
-              >
-                {isLoading ? 'Creating Account...' : 'Sign Up'}
-              </Button>
-            </form>
-
-            {/* Already have an account */}
-            <div className="pt-3 border-t border-border/60 text-center text-xs">
-              <p className="text-muted-foreground">
-                Already have an account?{' '}
-                <Link href="/" className="font-semibold text-accent hover:underline">
-                  Sign In
-                </Link>
-              </p>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>
