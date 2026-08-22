@@ -15,19 +15,26 @@ export interface AttendanceRecord {
   status: 'Present' | 'Late' | 'Absent' | 'Half Day' | 'On Leave';
 }
 
-interface AttendanceState {
+export interface AttendanceState {
   records: AttendanceRecord[];
   isCheckedIn: boolean;
   checkInTime: string | null;
   checkInTimestamp: number | null;
   isLoading: boolean;
   fetchAttendance: () => Promise<void>;
+  fetchToday: () => Promise<void>;
   checkIn: () => Promise<void>;
   checkOut: () => Promise<void>;
   addAttendanceRecord: (rec: Omit<AttendanceRecord, 'id'>) => void;
+  // Compatibility aliases
+  isPunchedIn?: boolean;
+  todayRecord?: { inTime?: string; outTime?: string };
+  checkTodayAttendance?: () => Promise<void>;
+  punchIn?: () => Promise<void>;
+  punchOut?: () => Promise<void>;
 }
 
-export const useAttendanceStore = create<AttendanceState>((set) => ({
+export const useAttendanceStore = create<AttendanceState>((set, get) => ({
   records: [
     {
       id: 'att_101',
@@ -55,63 +62,15 @@ export const useAttendanceStore = create<AttendanceState>((set) => ({
     },
     {
       id: 'att_103',
-      employeeId: 'usr_emp_02',
-      employeeName: 'Alex Rivera',
-      department: 'Software Engineering',
-      date: '2025-10-30',
-      checkIn: '09:30',
-      checkOut: '18:30',
-      workHours: '09:00',
-      extraHours: '01:00',
-      status: 'Present',
-    },
-    {
-      id: 'att_104',
-      employeeId: 'usr_emp_02',
-      employeeName: 'Alex Rivera',
-      department: 'Software Engineering',
-      date: '2025-10-31',
-      checkIn: '10:15',
-      checkOut: '19:15',
-      workHours: '08:45',
-      extraHours: '00:45',
-      status: 'Present',
-    },
-    {
-      id: 'att_105',
-      employeeId: 'usr_admin_01',
-      employeeName: 'Sarah Jenkins',
-      department: 'Human Resources',
-      date: '2025-10-28',
-      checkIn: '09:00',
-      checkOut: '18:00',
-      workHours: '09:00',
-      extraHours: '01:00',
-      status: 'Present',
-    },
-    {
-      id: 'att_106',
       employeeId: 'usr_emp_03',
-      employeeName: 'Michael Scott',
-      department: 'Sales & Marketing',
-      date: '2025-10-28',
-      checkIn: '10:30',
-      checkOut: '17:30',
-      workHours: '07:00',
-      extraHours: '00:00',
+      employeeName: 'John Doe',
+      department: 'Product Management',
+      date: '2025-10-29',
+      checkIn: '10:15',
+      checkOut: '18:45',
+      workHours: '08:30',
+      extraHours: '00:30',
       status: 'Late',
-    },
-    {
-      id: 'att_107',
-      employeeId: 'usr_emp_04',
-      employeeName: 'Jim Halpert',
-      department: 'Sales & Marketing',
-      date: '2025-10-28',
-      checkIn: '-',
-      checkOut: '-',
-      workHours: '00:00',
-      extraHours: '00:00',
-      status: 'On Leave',
     },
   ],
   isCheckedIn: false,
@@ -122,8 +81,8 @@ export const useAttendanceStore = create<AttendanceState>((set) => ({
   fetchAttendance: async () => {
     set({ isLoading: true });
     try {
-      const response = await api.get('/attendance');
-      if (response.data) {
+      const response = await api.get('/attendance/history');
+      if (response.data && Array.isArray(response.data)) {
         set({ records: response.data });
       }
     } catch (error: any) {
@@ -133,12 +92,27 @@ export const useAttendanceStore = create<AttendanceState>((set) => ({
     }
   },
 
+  fetchToday: async () => {
+    try {
+      const response = await api.get('/attendance/today');
+      if (response.data && response.data.checkIn) {
+        set({
+          isCheckedIn: true,
+          checkInTime: response.data.checkIn,
+          checkInTimestamp: Date.now() - 3600000,
+        });
+      }
+    } catch (error: any) {
+      // Keep current state
+    }
+  },
+
   checkIn: async () => {
     set({ isLoading: true });
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const nowTimestamp = Date.now();
     try {
-      await api.post('/attendance/check-in');
+      await api.post('/attendance/punch-in');
     } catch (error: any) {
       // Offline fallback
     } finally {
@@ -162,7 +136,7 @@ export const useAttendanceStore = create<AttendanceState>((set) => ({
         records: [newRec, ...state.records],
         isLoading: false,
       }));
-      snackbar.success(`Successfully checked IN at ${nowTime}! Red status dot changed to Green.`);
+      snackbar.success(`Successfully checked IN at ${nowTime}!`);
     }
   },
 
@@ -170,7 +144,7 @@ export const useAttendanceStore = create<AttendanceState>((set) => ({
     set({ isLoading: true });
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     try {
-      await api.post('/attendance/check-out');
+      await api.post('/attendance/punch-out');
     } catch (error: any) {
       // Offline fallback
     } finally {
@@ -183,7 +157,7 @@ export const useAttendanceStore = create<AttendanceState>((set) => ({
         ),
         isLoading: false,
       }));
-      snackbar.info('Successfully checked OUT. Status dot changed back to Red.');
+      snackbar.info('Successfully checked OUT.');
     }
   },
 
@@ -192,4 +166,9 @@ export const useAttendanceStore = create<AttendanceState>((set) => ({
       records: [{ ...rec, id: `att_${Date.now()}` }, ...state.records],
     }));
   },
+
+  // Alias implementations for compatibility
+  punchIn: async () => get().checkIn(),
+  punchOut: async () => get().checkOut(),
+  checkTodayAttendance: async () => get().fetchToday(),
 }));

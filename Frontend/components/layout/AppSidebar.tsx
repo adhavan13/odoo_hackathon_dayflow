@@ -177,7 +177,7 @@ const employeeNavConfig: NavGroup[] = [
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { role } = useAuthStore();
+  const { role, user } = useAuthStore();
   const {
     isCollapsed,
     isMobileOpen,
@@ -187,7 +187,13 @@ export function AppSidebar() {
     toggleGroup,
   } = useSidebarStore();
 
-  const navConfig = role === 'admin' ? adminNavConfig : employeeNavConfig;
+  const activeRole: UserRole = pathname.startsWith('/employee')
+    ? 'employee'
+    : pathname.startsWith('/admin')
+    ? 'admin'
+    : role;
+
+  const navConfig = activeRole === 'admin' ? adminNavConfig : employeeNavConfig;
 
   const SidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300">
@@ -196,7 +202,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-3 overflow-hidden">
           <img
             src="/logo.png"
-            alt="Dayflow Logo"
+            alt="Dayflow HRMS Logo"
             className="h-9 w-9 shrink-0 object-contain rounded-lg p-0.5 bg-card border border-border/40 shadow-xs"
           />
           {!isCollapsed && (
@@ -239,7 +245,7 @@ export function AppSidebar() {
           <div className="flex items-center justify-between px-1">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Active Portal</span>
             <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-accent/15 text-accent font-medium border border-accent/30">
-              {role === 'admin' ? (
+              {activeRole === 'admin' ? (
                 <>
                   <ShieldCheck className="h-3.5 w-3.5" />
                   Admin
@@ -254,8 +260,8 @@ export function AppSidebar() {
           </div>
         ) : (
           <div className="flex justify-center">
-            <div className="p-2 rounded-lg bg-accent/15 text-accent" title={`${role === 'admin' ? 'Admin' : 'Employee'} Portal`}>
-              {role === 'admin' ? <ShieldCheck className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+            <div className="p-2 rounded-lg bg-accent/15 text-accent" title={`${activeRole === 'admin' ? 'Admin' : 'Employee'} Portal`}>
+              {activeRole === 'admin' ? <ShieldCheck className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
             </div>
           </div>
         )}

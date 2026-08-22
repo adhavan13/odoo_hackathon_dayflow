@@ -30,7 +30,7 @@ export default function Home() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { loginWithBackend, setAuth } = useAuthStore();
+  const { loginWithBackend } = useAuthStore();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,34 +42,14 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      // Attempt backend API login first
+      // Authenticate strictly via Backend API
       const loggedUser = await loginWithBackend(loginIdOrEmail.trim(), password);
       setIsLoading(false);
       if (typeof window !== 'undefined') {
         window.location.href = loggedUser.role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
       }
     } catch (err: any) {
-      // Fallback for demo credentials
-      const mockUser = {
-        id: role === 'admin' ? 'usr_admin_01' : 'usr_emp_02',
-        name: role === 'admin' ? 'Sarah Jenkins' : 'Alex Rivera',
-        email: loginIdOrEmail.includes('@') ? loginIdOrEmail : `${loginIdOrEmail.toLowerCase()}@company.com`,
-        role: role,
-        avatarUrl:
-          role === 'admin'
-            ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
-            : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-        department: role === 'admin' ? 'Human Resources' : 'Software Engineering',
-        designation: role === 'admin' ? 'HR Officer / Admin' : 'Senior Frontend Developer',
-      };
-
-      setAuth(mockUser, 'mock_jwt_token_' + Date.now());
-      snackbar.info(`Logged in as ${mockUser.name} (Demo Mode)`);
       setIsLoading(false);
-
-      if (typeof window !== 'undefined') {
-        window.location.href = role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
-      }
     }
   };
 

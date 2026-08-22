@@ -28,9 +28,6 @@ export const signupUser = asyncHandler(async (req: Request, res: Response) => {
   );
   console.log("Signup result:", result); // Debugging line
   return res.status(201).json({
-    success: true,
-    message:
-      "Company registered successfully. Please verify your email before logging in.",
     ...result,
   });
 });
@@ -46,19 +43,18 @@ export const sendVerificationOtp = asyncHandler(
   async (req: Request, res: Response) => {
     const result = await AuthService.sendVerificationOtp(req.body.email);
     return res.status(200).json({
-      success: true,
-      message: "Verification OTP sent successfully.",
-      verificationOtp: result.otp,
+      message: "Verification OTP sent successfully to your email.",
+      ...result,
     });
   },
 );
 
 export const verifyEmailOtp = asyncHandler(
   async (req: Request, res: Response) => {
-    await AuthService.verifyEmailOtp(req.body.email, req.body.otp);
+    const result = await AuthService.verifyEmailOtp(req.body.email, req.body.otp);
     return res
       .status(200)
-      .json({ success: true, message: "Email verified successfully" });
+      .json({ success: true, message: "Email verified successfully", ...result });
   },
 );
 
@@ -68,6 +64,15 @@ export const getCurrentUser = asyncHandler(
     if (!userId) throw new ApiError(401, "Authenticated user is missing.");
     const profile = await AuthService.getProfile(userId);
     return res.status(200).json({ success: true, user: profile });
+  },
+);
+
+export const updateCurrentUser = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new ApiError(401, "Authenticated user is missing.");
+    const updated = await AuthService.updateProfile(userId, req.body);
+    return res.status(200).json({ success: true, user: updated, message: "Profile updated successfully" });
   },
 );
 
@@ -83,18 +88,21 @@ export const logoutUser = asyncHandler(
 
 export const forgotPassword = asyncHandler(
   async (req: Request, res: Response) => {
-    const token = await AuthService.forgotPassword(req.body.email);
+    const { email } = req.body;
+    const token = await AuthService.forgotPassword(email);
     return res.status(200).json({
       success: true,
-      message: "If that email exists, a password reset link has been sent.",
-      ...(token ? { resetToken: token } : {}),
+      message:
+        "If an account with that email exists, password reset instructions have been sent.",
+      resetToken: token,
     });
   },
 );
 
 export const resetPassword = asyncHandler(
   async (req: Request, res: Response) => {
-    await AuthService.resetPassword(req.body.token, req.body.password);
+    const { token, password } = req.body;
+    await AuthService.resetPassword(token, password);
     return res
       .status(200)
       .json({ success: true, message: "Password reset successfully" });

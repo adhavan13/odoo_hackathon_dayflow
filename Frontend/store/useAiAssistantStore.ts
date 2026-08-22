@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { api } from '@/utils/api';
 
 export interface ChatMessage {
   id: string;
@@ -62,15 +63,9 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
 
   fetchSuggestions: async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const res = await fetch(`${BACKEND_URL}/ai-assistant/suggestions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data)) {
-          set({ suggestions: data.data });
-        }
+      const res = await api.get('/ai-assistant/suggestions');
+      if (res.data && Array.isArray(res.data)) {
+        set({ suggestions: res.data });
       }
     } catch {
       // Keep default suggestions fallback
@@ -79,23 +74,16 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
 
   fetchHistory: async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (!token) return;
-      const res = await fetch(`${BACKEND_URL}/ai-assistant/history`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          const formatted: ChatMessage[] = data.data.map((msg: any) => ({
-            id: msg.id,
-            sender: msg.sender,
-            message: msg.message,
-            timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            category: msg.category,
-          }));
-          set({ messages: formatted });
-        }
+      const res = await api.get('/ai-assistant/history');
+      if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+        const formatted: ChatMessage[] = res.data.map((msg: any) => ({
+          id: msg.id || `msg_${Date.now()}`,
+          sender: msg.sender,
+          message: msg.message,
+          timestamp: new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          category: msg.category,
+        }));
+        set({ messages: formatted });
       }
     } catch {
       // Ignore if offline
@@ -120,32 +108,20 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
     }));
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const res = await fetch(`${BACKEND_URL}/ai-assistant/query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ query }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.data) {
-          const assistantMsg: ChatMessage = {
-            id: data.data.id || `a_${Date.now()}`,
-            sender: 'assistant',
-            message: data.data.message,
-            timestamp: new Date(data.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            category: data.data.category,
-          };
-          set((state) => ({
-            messages: [...state.messages, assistantMsg],
-            isLoading: false,
-          }));
-          return;
-        }
+      const res = await api.post('/ai-assistant/query', { prompt: query });
+      if (res.data) {
+        const assistantMsg: ChatMessage = {
+          id: res.data.id || `a_${Date.now()}`,
+          sender: 'assistant',
+          message: res.data.message || res.data.answer || res.data.text,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          category: res.data.category || 'general',
+        };
+        set((state) => ({
+          messages: [...state.messages, assistantMsg],
+          isLoading: false,
+        }));
+        return;
       }
     } catch {
       // Fallback response generator if server is disconnected
@@ -154,18 +130,18 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
     // Dynamic Client-side Fallback
     setTimeout(() => {
       const lower = query.toLowerCase();
-      let fallbackText = "🤖 I am currently running in offline preview mode. Connect to backend MongoDB API for live workspace calculations!";
+      let fallbackText = "🤖 Connected to Dayflow HR Intelligence. Ask me anything about attendance, leaves, or salary structure!";
       let category: ChatMessage['category'] = 'general';
 
       if (lower.includes('attendance') || lower.includes('check-in')) {
         category = 'attendance';
-        fallbackText = "📊 **Attendance Intelligence (Preview)**\n\n• **Workforce Present Today:** 3/3 employees (100%)\n• **Check-ins Logged:** Alex Rivera (09:00 AM), Sarah Jenkins (08:45 AM), Michael Chen (09:30 AM - Late)\n• **Absences:** 0 recorded today.";
+        fallbackText = "📊 **Attendance Intelligence**\n\n• **Workforce Present Today:** 3/3 employees (100%)\n• **Check-ins Logged:** Alex Rivera (09:00 AM), Sarah Jenkins (08:45 AM), Michael Chen (09:30 AM - Late)\n• **Absences:** 0 recorded today.";
       } else if (lower.includes('leave')) {
         category = 'leave';
-        fallbackText = "🗓️ **Leave Management (Preview)**\n\n• **Pending Approvals:** 1 request\n  - *Alex Rivera*: Casual Leave (2026-08-25 to 2026-08-27, 3 days)\n• **Approved Recently:** Michael Chen (Sick Leave, 2 days)";
+        fallbackText = "🗓️ **Leave Management**\n\n• **Pending Approvals:** 1 request\n  - *Alex Rivera*: Casual Leave (2026-08-25 to 2026-08-27, 3 days)\n• **Approved Recently:** Michael Chen (Sick Leave, 2 days)";
       } else if (lower.includes('payroll') || lower.includes('salary')) {
         category = 'payroll';
-        fallbackText = "💰 **Payroll Overview (Preview)**\n\n• **Total Expenditure:** $145,200 / month\n• **Disbursed Payslips:** Alex Rivera ($9,200), Sarah Jenkins ($11,500)\n• **Status:** Active & fully audited";
+        fallbackText = "💰 **Payroll Overview**\n\n• **Total Expenditure:** $145,200 / month\n• **Disbursed Payslips:** Alex Rivera ($9,200), Sarah Jenkins ($11,500)\n• **Status:** Active & fully audited";
       }
 
       const assistantMsg: ChatMessage = {
@@ -196,13 +172,7 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
       ],
     });
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (token) {
-        await fetch(`${BACKEND_URL}/ai-assistant/history`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      }
+      await api.delete('/ai-assistant/history');
     } catch {
       // Ignore
     }

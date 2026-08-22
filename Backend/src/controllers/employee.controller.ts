@@ -19,6 +19,13 @@ export const getEmployeeById = asyncHandler(async (req: AuthenticatedRequest, re
     .json(new ApiResponse(200, employee, 'Employee profile retrieved successfully'));
 });
 
+export const createEmployeeController = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const result = await EmployeeService.createEmployee(req.body);
+  return res
+    .status(201)
+    .json(new ApiResponse(201, result, 'Employee account created and password reset email sent successfully'));
+});
+
 export const updateEmployeeProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
   const updated = await EmployeeService.updateEmployeeProfile(id, req.body);
