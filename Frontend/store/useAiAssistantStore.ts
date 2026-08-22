@@ -22,7 +22,7 @@ interface AiAssistantState {
   clearHistory: () => Promise<void>;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
 const getAuthHeaders = (): Record<string, string> => {
   if (typeof window === 'undefined') return {};
