@@ -1,16 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
 import { Toaster } from '@/components/ui/sonner';
 import { AiAssistantWidget } from '@/components/ai-assistant/AiAssistantWidget';
+import { useAuthStore } from '@/store';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { checkAuthMe } = useAuthStore();
+
+  useEffect(() => {
+    checkAuthMe();
+  }, [checkAuthMe]);
+
   return (
     <div className="flex min-h-screen bg-background font-sans text-foreground antialiased selection:bg-accent selection:text-accent-foreground">
       <AppSidebar />

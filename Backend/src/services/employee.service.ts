@@ -1,4 +1,6 @@
+import crypto from "crypto";
 import { getDatabase } from "../config/database";
+import { EmailService } from "./email.service";
 
 export interface EmployeeProfile {
   id: string;
@@ -64,6 +66,10 @@ export class EmployeeService {
     return getDatabase().collection<EmployeeProfile>("employees");
   }
 
+  private static usersCollection() {
+    return getDatabase().collection("users");
+  }
+
   private static async ensureSeedData() {
     const collection = this.collection();
     if ((await collection.countDocuments()) === 0)
@@ -78,6 +84,75 @@ export class EmployeeService {
   static async getEmployeeById(id: string) {
     await this.ensureSeedData();
     return this.collection().findOne({ $or: [{ id }, { employeeCode: id }] });
+  }
+
+  static async createEmployee(data: {
+    name: string;
+    email: string;
+    department?: string;
+    designation?: string;
+    phone?: string;
+    avatarUrl?: string;
+    role?: "admin" | "employee";
+  }) {
+    await this.ensureSeedData();
+    const existing = await this.collection().findOne({ email: data.email.trim().toLowerCase() });
+    if (existing) {
+      throw new Error("Employee with this email already exists.");
+    }
+
+    const empId = `emp_${Date.now()}`;
+    const employeeCode = `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const normalizedEmail = data.email.trim().toLowerCase();
+
+    const newEmp: EmployeeProfile = {
+      id: empId,
+      employeeCode,
+      name: data.name.trim(),
+      email: normalizedEmail,
+      role: data.role || "employee",
+      department: data.department || "Software Engineering",
+      designation: data.designation || "Software Developer",
+      joinDate: new Date().toISOString().split("T")[0],
+      status: "active",
+      phone: data.phone || "",
+      avatarUrl: data.avatarUrl || "",
+    };
+
+    // Create user record with reset token for password creation
+    await this.usersCollection().insertOne({
+      id: `usr_${Date.now()}`,
+      employeeId: employeeCode,
+      email: normalizedEmail,
+      role: (data.role || "employee").toUpperCase(),
+      name: data.name.trim(),
+      passwordHash: "", // Will be set via password reset link
+      emailVerified: true,
+      status: "active",
+      resetToken,
+      resetTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
+    });
+
+    await this.collection().insertOne(newEmp);
+
+    const resetLink = `http://localhost:3000/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(normalizedEmail)}`;
+
+    // Send password setup invitation email to new employee
+    await EmailService.sendPasswordSetupEmail({
+      toEmail: normalizedEmail,
+      recipientName: data.name.trim(),
+      resetToken,
+      resetLink,
+      employeeCode,
+      designation: newEmp.designation,
+    });
+
+    return {
+      employee: newEmp,
+      resetToken,
+      resetLink,
+    };
   }
 
   static async updateEmployeeProfile(

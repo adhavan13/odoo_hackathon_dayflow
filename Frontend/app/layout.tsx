@@ -13,16 +13,8 @@ export const metadata: Metadata = {
   title: 'Dayflow HRMS - Human Resource Management System',
   description: 'Enterprise-grade HRMS digitizing employee onboarding, shift attendance tracking, leave workflows, and real-time wage computations.',
   icons: {
-    icon: [
-      {
-        url: '/logo.png',
-        type: 'image/png',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: '/logo.png',
+    shortcut: '/logo.png',
     apple: '/logo.png',
   },
 }
