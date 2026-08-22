@@ -2,8 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, Bell, Search, ShieldCheck, UserCheck, User, LogOut, Bot, Sparkles } from 'lucide-react';
-import { useAuthStore, useSidebarStore, useAppStore } from '@/store';
+import {
+  Menu,
+  Bell,
+  Search,
+  ShieldCheck,
+  UserCheck,
+  User,
+  LogOut,
+  Bot,
+  Sparkles,
+  Clock,
+} from 'lucide-react';
+import { useAuthStore, useSidebarStore, useAppStore, useAttendanceStore } from '@/store';
 import { useAiAssistantStore } from '@/store/useAiAssistantStore';
 import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -53,7 +64,10 @@ function LiveShiftTimer({ timestamp }: { timestamp: number | null }) {
   }, [timestamp]);
 
   return (
-    <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 flex items-center gap-1">
+    <span
+      suppressHydrationWarning
+      className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30 flex items-center gap-1"
+    >
       <Clock className="h-3 w-3 animate-spin text-emerald-500" />
       {elapsed}
     </span>
@@ -67,6 +81,20 @@ export function AppHeader() {
   const { toggleMobileOpen } = useSidebarStore();
   const { unreadCount } = useAppStore();
   const { toggleOpen: toggleAiAssistant } = useAiAssistantStore();
+  const { isCheckedIn, checkInTime, checkInTimestamp, checkIn, checkOut } = useAttendanceStore();
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const activeRole = pathname.startsWith('/employee')
+    ? 'employee'
+    : pathname.startsWith('/admin')
+    ? 'admin'
+    : role;
+
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const getBreadcrumbTitle = (): string => {
     const segments = pathname.split('/').filter(Boolean);
@@ -79,7 +107,7 @@ export function AppHeader() {
   };
 
   const handleMyProfileClick = () => {
-    if (role === 'admin') {
+    if (activeRole === 'admin') {
       router.push('/admin/profile');
     } else {
       router.push('/employee/profile');
@@ -113,50 +141,21 @@ export function AppHeader() {
 
           <div className="flex flex-col">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="capitalize">{role} Portal</span>
+              <span className="capitalize">{activeRole} Portal</span>
               <span>/</span>
               <span className="font-semibold text-foreground">{getBreadcrumbTitle()}</span>
             </div>
           </div>
         </div>
 
-      {/* Center Search Input */}
-      <div className="hidden lg:flex items-center w-72 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search employees, requests, reports..."
-          className="pl-9 h-9 text-xs bg-muted/40 focus-visible:bg-background"
-        />
-      </div>
-
-      {/* Right Section: Actions & Profile Dropdown */}
-      <div className="flex items-center gap-2 md:gap-3">
-        {/* AI Assistant Quick Launcher Button */}
-        <Button
-          onClick={toggleAiAssistant}
-          variant="outline"
-          size="sm"
-          className="hidden sm:flex items-center gap-1.5 h-9 bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-indigo-500/10 border-violet-500/30 hover:border-violet-500/60 text-xs font-medium transition-all duration-200"
-        >
-          <Bot className="h-4 w-4 text-violet-500" />
-          <span>Ask AI</span>
-          <Sparkles className="h-3 w-3 text-amber-500" />
-        </Button>
-
-        {/* Static Role View Badge */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-          {role === 'admin' ? (
-            <>
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Admin View</span>
-            </>
-          ) : (
-            <>
-              <UserCheck className="h-3.5 w-3.5" />
-              <span>Employee View</span>
-            </>
-          )}
+        {/* Center Search Input */}
+        <div className="hidden lg:flex items-center w-72 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search employees, requests, reports..."
+            className="pl-9 h-9 text-xs bg-muted/40 focus-visible:bg-background"
+          />
         </div>
 
         {/* Right Section: Actions & Profile Dropdown */}
@@ -194,9 +193,19 @@ export function AppHeader() {
             )}
           </div>
 
-          {/* Static Role View Badge (No switching inside portal) */}
+          {/* AI Assistant Quick Launcher Button */}
+          <Button
+            onClick={toggleAiAssistant}
+            type="button"
+            className="hidden sm:flex items-center gap-2 h-9 px-3.5 bg-accent/15 hover:bg-accent/25 border border-accent/30 rounded-full text-xs font-bold text-accent hover:text-accent transition-all duration-200 cursor-pointer shadow-2xs"
+          >
+            <Bot className="h-4 w-4 text-accent" />
+            <span className="font-bold text-xs tracking-tight">Ask AI</span>
+          </Button>
+
+          {/* Role View Badge */}
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/15 border border-accent/30 text-accent text-xs font-semibold">
-            {role === 'admin' ? (
+            {activeRole === 'admin' ? (
               <>
                 <ShieldCheck className="h-3.5 w-3.5" />
                 <span>Admin View</span>
@@ -230,29 +239,36 @@ export function AppHeader() {
 
           {/* User Profile Avatar Dropdown */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild id="app-header-user-menu-trigger">
               <button
+                id="app-header-user-menu-button"
                 type="button"
+                suppressHydrationWarning
                 className="flex items-center gap-2 pl-2 outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-accent rounded-full p-1 transition-colors hover:bg-muted/50"
               >
                 <div className="h-8 w-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
                   {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                    <img src={user.avatarUrl} alt={user?.name || 'User'} className="h-full w-full object-cover" />
                   ) : (
-                    user?.name?.substring(0, 2).toUpperCase() || 'US'
+                    <User className="h-4 w-4 text-accent" />
                   )}
                 </div>
                 <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-xs font-semibold leading-tight">{user?.name}</span>
-                  <span className="text-[10px] text-muted-foreground capitalize">{role}</span>
+                  <span suppressHydrationWarning className="text-xs font-semibold leading-tight">{user?.name || 'User'}</span>
+                  <span suppressHydrationWarning className="text-[10px] text-muted-foreground capitalize">{activeRole}</span>
                 </div>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 mt-1">
+            <DropdownMenuContent align="end" className="w-60 mt-1">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.name}</p>
+                  <p className="text-sm font-bold leading-none text-foreground">{user?.name}</p>
                   <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                  {user?.employeeId && (
+                    <p className="text-[11px] text-accent font-mono font-medium pt-0.5">
+                      ID: {user.employeeId}
+                    </p>
+                  )}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

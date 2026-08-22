@@ -6,6 +6,7 @@ import {
   verifyEmailOtp,
   loginUser,
   getCurrentUser,
+  updateCurrentUser,
   logoutUser,
   forgotPassword,
   resetPassword,
@@ -21,6 +22,7 @@ router.post("/resend-verification-otp", sendVerificationOtp);
 router.post("/verify-email", verifyEmailOtp);
 router.post("/login", loginUser);
 router.get("/me", authenticateToken, getCurrentUser);
+router.patch("/me", authenticateToken, updateCurrentUser);
 router.post("/logout", authenticateToken, logoutUser);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);

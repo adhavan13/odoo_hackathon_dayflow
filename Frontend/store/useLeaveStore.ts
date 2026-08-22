@@ -126,8 +126,8 @@ export const useLeaveStore = create<LeaveState>((set) => ({
   fetchLeaves: async () => {
     set({ isLoading: true });
     try {
-      const response = await api.get('/leaves');
-      if (response.data) {
+      const response = await api.get('/leave/requests');
+      if (response.data && Array.isArray(response.data)) {
         set({ leaves: response.data });
       }
     } catch (error) {
@@ -140,7 +140,7 @@ export const useLeaveStore = create<LeaveState>((set) => ({
   applyLeave: async (leaveData) => {
     set({ isLoading: true });
     try {
-      const response = await api.post('/leaves/apply', leaveData);
+      const response = await api.post('/leave/apply', leaveData);
       snackbar.success('Time off request submitted successfully');
       const newLeave: LeaveRequest = response.data || {
         ...leaveData,
@@ -166,7 +166,7 @@ export const useLeaveStore = create<LeaveState>((set) => ({
   updateLeaveStatus: async (id, status) => {
     set({ isLoading: true });
     try {
-      await api.patch(`/leaves/${id}/status`, { status });
+      await api.patch(`/leave/requests/${id}`, { status });
       snackbar.success(`Time off request ${status.toLowerCase()}`);
       set((state) => ({
         leaves: state.leaves.map((l) => (l.id === id ? { ...l, status } : l)),

@@ -10,25 +10,12 @@ const _dmSans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700
 const _jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Dayflow - Human Resource Management System',
-  description: 'Dayflow Enterprise HR Management System - Attendance, Payroll, Leave & Workforce Analytics',
-  generator: 'v0.app',
+  title: 'Dayflow HRMS - Human Resource Management System',
+  description: 'Enterprise-grade HRMS digitizing employee onboarding, shift attendance tracking, leave workflows, and real-time wage computations.',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
   },
 }
 
@@ -40,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           {children}
           <Toaster position="top-right" richColors />
           <Analytics />

@@ -25,7 +25,9 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
+// Support both /api/v1 and /api base paths
 app.use('/api/v1', routes);
+app.use('/api', routes);
 
 app.use(errorHandler);
 

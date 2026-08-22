@@ -24,7 +24,34 @@ import { Label } from '@/components/ui/label';
 export type Section = 'overview' | 'pipeline' | 'deals' | 'team' | 'reports' | 'customers' | 'forecasting' | 'settings';
 
 export default function Home() {
-  const { switchRole } = useAuthStore();
+  const [role, setRole] = useState<UserRole>('employee');
+  const [loginIdOrEmail, setLoginIdOrEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { loginWithBackend } = useAuthStore();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginIdOrEmail.trim() || !password.trim()) {
+      snackbar.error('Please enter both Login ID/Email and Password.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Authenticate strictly via Backend API
+      const loggedUser = await loginWithBackend(loginIdOrEmail.trim(), password);
+      setIsLoading(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = loggedUser.role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="h-screen w-full overflow-hidden bg-background text-foreground flex flex-col lg:flex-row selection:bg-accent selection:text-accent-foreground">
@@ -107,10 +134,6 @@ export default function Home() {
             <Building2 className="h-3.5 w-3.5 text-accent" />
             <span>Dayflow HRMS Platform</span>
           </div>
-          <span className="flex items-center gap-1.5 text-[11px]">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-            Vercel Ready & Active
-          </span>
         </div>
       </div>
 

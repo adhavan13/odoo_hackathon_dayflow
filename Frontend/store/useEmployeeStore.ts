@@ -96,17 +96,21 @@ export const useEmployeeStore = create<EmployeeState>((set, get) => ({
         temporaryPassword: tempPass,
       };
 
-      try {
-        await api.post('/employees', newEmp);
-      } catch (e) {
-        // Fallback for offline mode
+      // Call Backend API to create employee and send password setup email
+      const res = await api.post('/employees', newEmp);
+      const resData = res.data || res;
+
+      if (resData?.resetLink || resData?.employee) {
+        snackbar.success(`Employee ${newEmp.name} created! Password setup email sent to ${newEmp.email}`);
+      } else {
+        snackbar.success(`Employee ${newEmp.name} created successfully! Password invitation email sent.`);
       }
 
       set((state) => ({ employees: [...state.employees, newEmp] }));
-      snackbar.success(`Created employee: Login ID ${generatedId}`);
       return newEmp;
     } catch (error: any) {
-      snackbar.error(error.message || 'Failed to add employee');
+      const errorMsg = error?.response?.data?.message || error?.message || 'Failed to create employee';
+      snackbar.error(errorMsg);
       throw error;
     } finally {
       set({ isLoading: false });
