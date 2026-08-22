@@ -112,7 +112,7 @@ export function AiAssistantWidget() {
       case 'leave':
         return <Calendar className="h-3.5 w-3.5 text-accent" />;
       case 'payroll':
-        return <DollarSign className="h-3.5 w-3.5 text-accent" />;
+        return <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />;
       case 'employee':
         return <Users className="h-3.5 w-3.5 text-muted-foreground" />;
       default:
@@ -149,16 +149,8 @@ export function AiAssistantWidget() {
               <MessageSquare className="h-4 w-4" />
             </div>
             <div>
-              <div className="flex items-center space-x-1.5">
-                <h3 className="font-bold text-sm tracking-wide text-white">Dayflow HR Assistant</h3>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-white/40 text-white bg-white/15 font-semibold">
-                  <Sparkles className="h-2.5 w-2.5 mr-0.5 text-white" /> AI Powered
-                </Badge>
-              </div>
-              <p className="text-[11px] text-white/80 flex items-center space-x-1 font-medium">
-                <ShieldCheck className="h-3 w-3 text-emerald-300 shrink-0" />
-                <span>MongoDB HR Intelligence Connected</span>
-              </p>
+              <h3 className="font-semibold text-xs tracking-tight text-foreground">Dayflow HR Assistant</h3>
+              <p className="text-[11px] text-muted-foreground">Enterprise HR Knowledge Base</p>
             </div>
           </div>
 
