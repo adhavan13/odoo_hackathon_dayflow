@@ -31,7 +31,7 @@ interface AiAssistantState {
   clearHistory: () => Promise<void>;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
 const defaultSuggestions: Suggestion[] = [
   { id: 's1', label: "Today's Attendance Summary", query: "Give me a summary of employee check-ins and absences for today.", category: 'attendance' },
