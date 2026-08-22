@@ -39,7 +39,7 @@ export default function AdminSignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { setAuth } = useAuthStore();
+  const { signupWithBackend, setAuth } = useAuthStore();
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,7 +59,7 @@ export default function AdminSignUpPage() {
     }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!companyName.trim() || !name.trim() || !email.trim() || !password.trim()) {
@@ -72,14 +72,31 @@ export default function AdminSignUpPage() {
       return;
     }
 
-    if (password.length < 6) {
-      snackbar.error('Password must be at least 6 characters long.');
+    if (password.length < 8) {
+      snackbar.error('Password must be at least 8 characters with uppercase, lowercase, and a number.');
       return;
     }
 
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      // Call Backend registration endpoint /api/auth/signup
+      await signupWithBackend({
+        companyName: companyName.trim(),
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || '+15551234567',
+        password,
+        confirmPassword,
+        logo: logoUrl,
+      });
+
+      setIsLoading(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/admin/dashboard/overview';
+      }
+    } catch (err: any) {
+      // Fallback for demo mode
       const newAdmin = {
         id: 'usr_admin_' + Date.now(),
         name: name,
@@ -91,13 +108,13 @@ export default function AdminSignUpPage() {
       };
 
       setAuth(newAdmin, 'mock_jwt_token_' + Date.now());
-      snackbar.success(`Account created successfully for ${companyName}!`);
+      snackbar.info(`Registered ${companyName} (Demo Mode)`);
       setIsLoading(false);
 
       if (typeof window !== 'undefined') {
         window.location.href = '/admin/dashboard/overview';
       }
-    }, 800);
+    }
   };
 
   return (

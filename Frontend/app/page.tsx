@@ -154,10 +154,6 @@ export default function Home() {
             <Building2 className="h-3.5 w-3.5 text-accent" />
             <span>Dayflow HRMS Platform</span>
           </div>
-          <span className="flex items-center gap-1.5 text-[11px]">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-            Vercel Ready & Active
-          </span>
         </div>
       </div>
 
