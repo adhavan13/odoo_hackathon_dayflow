@@ -159,30 +159,30 @@ export function AppHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur px-4 md:px-6">
+      <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur px-3 sm:px-4 md:px-6 w-full max-w-full overflow-hidden">
         {/* Left Section: Mobile Menu & Breadcrumb */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden text-foreground hover:bg-accent hover:text-accent-foreground group transition-colors cursor-pointer"
+            className="md:hidden text-foreground hover:bg-accent hover:text-accent-foreground group transition-colors cursor-pointer shrink-0"
             onClick={toggleMobileOpen}
             aria-label="Toggle navigation menu"
           >
             <Menu className="h-5 w-5 group-hover:text-accent-foreground" />
           </Button>
 
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="capitalize">{activeRole} Portal</span>
-              <span>/</span>
-              <span className="font-semibold text-foreground">{getBreadcrumbTitle()}</span>
-            </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+            <span className="capitalize shrink-0 hidden sm:inline">{activeRole} Portal</span>
+            <span className="shrink-0 hidden sm:inline">/</span>
+            <span className="font-bold sm:font-semibold text-foreground text-sm sm:text-xs truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">
+              {getBreadcrumbTitle()}
+            </span>
           </div>
         </div>
 
         {/* Center Search Input */}
-        <div className="hidden lg:flex items-center w-72 relative">
+        <div className="hidden lg:flex items-center w-64 xl:w-80 relative mx-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
@@ -192,9 +192,9 @@ export function AppHeader() {
         </div>
 
         {/* Right Section: Actions & Profile Dropdown */}
-        <div className="flex items-center gap-2 md:gap-3">
-          {/* Systray Check IN / Check OUT Widget */}
-          <div className="flex items-center gap-2 p-1 px-2.5 rounded-xl border border-border bg-card shadow-2xs">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0">
+          {/* Systray Check IN / Check OUT Widget (Hidden on tiny mobile screens for clean layout) */}
+          <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 p-1 px-2 sm:px-2.5 rounded-xl border border-border bg-card shadow-2xs shrink-0">
             <span
               className={`h-2.5 w-2.5 rounded-full shrink-0 transition-colors ${
                 isCheckedIn ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
@@ -203,13 +203,15 @@ export function AppHeader() {
             />
 
             {isCheckedIn ? (
-              <div className="flex items-center gap-2">
-                <LiveShiftTimer timestamp={checkInTimestamp} />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="hidden sm:block">
+                  <LiveShiftTimer timestamp={checkInTimestamp} />
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setIsCheckOutModalOpen(true)}
-                  className="h-7 text-xs px-2.5 font-bold border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:text-white cursor-pointer transition-all gap-1"
+                  className="h-7 text-[11px] sm:text-xs px-2 sm:px-2.5 font-bold border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:text-white cursor-pointer transition-all gap-1"
                 >
                   Check OUT →
                 </Button>
@@ -218,7 +220,7 @@ export function AppHeader() {
               <Button
                 size="sm"
                 onClick={checkIn}
-                className="h-7 text-xs px-2.5 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer gap-1"
+                className="h-7 text-[11px] sm:text-xs px-2 sm:px-2.5 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer gap-1 font-bold"
               >
                 Check IN →
               </Button>
@@ -229,25 +231,23 @@ export function AppHeader() {
           <Button
             onClick={toggleAiAssistant}
             type="button"
-            className="hidden sm:flex items-center gap-2 h-9 px-3.5 bg-accent/15 hover:bg-accent/25 border border-accent/30 rounded-full text-xs font-bold text-accent hover:text-accent transition-all duration-200 cursor-pointer shadow-2xs"
+            className="hidden md:flex items-center gap-1.5 h-8 px-3 bg-accent/15 hover:bg-accent/25 border border-accent/30 rounded-full text-xs font-bold text-accent transition-all duration-200 cursor-pointer shadow-2xs shrink-0"
           >
             <Bot className="h-4 w-4 text-accent" />
             <span className="font-bold text-xs tracking-tight">Ask AI</span>
           </Button>
 
-
-
-          {/* Notifications Icon with Badge */}
+          {/* Notifications Icon with Badge (Hidden on mobile) */}
           <Button
             variant="ghost"
             size="icon"
-            className="relative text-foreground hover:bg-accent hover:text-accent-foreground group transition-colors cursor-pointer"
+            className="hidden sm:flex relative text-foreground hover:bg-accent hover:text-accent-foreground group transition-colors cursor-pointer shrink-0 h-8 w-8 sm:h-9 sm:w-9"
             onClick={() => snackbar.info(`You have ${unreadCount} unread notifications.`)}
             title="Notifications"
           >
             <Bell className="h-4 w-4 group-hover:text-accent-foreground" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
                 {unreadCount}
               </span>
             )}
@@ -263,7 +263,7 @@ export function AppHeader() {
                 id="app-header-user-menu-button"
                 type="button"
                 suppressHydrationWarning
-                className="flex items-center gap-2 pl-2 outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-accent rounded-full p-1 transition-colors hover:bg-muted/50"
+                className="flex items-center gap-2 outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-accent rounded-full p-0.5 transition-colors hover:bg-muted/50 shrink-0"
               >
                 <div className="h-8 w-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
                   {mounted && activeUser?.avatarUrl ? (
@@ -279,11 +279,11 @@ export function AppHeader() {
                     <span>{(activeUser?.name || 'U').charAt(0).toUpperCase()}</span>
                   )}
                 </div>
-                <div className="hidden sm:flex flex-col text-left">
-                  <span suppressHydrationWarning className="text-xs font-semibold leading-tight text-foreground">
+                <div className="hidden xl:flex flex-col text-left">
+                  <span suppressHydrationWarning className="text-xs font-semibold leading-tight text-foreground max-w-[110px] truncate">
                     {mounted ? (activeUser?.name || 'User') : 'Loading...'}
                   </span>
-                  <span suppressHydrationWarning className="text-[10px] text-muted-foreground capitalize">
+                  <span suppressHydrationWarning className="text-[10px] text-muted-foreground capitalize max-w-[110px] truncate">
                     {mounted ? (activeUser?.designation || activeRole) : ''}
                   </span>
                 </div>
