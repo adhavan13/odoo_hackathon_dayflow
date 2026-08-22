@@ -439,7 +439,7 @@ export default function AdminOverviewPage() {
                   Employee Profile Information (View-Only Mode)
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  Viewing detailed information for <strong className="text-foreground">{viewingEmployee.name}</strong> (<span className="font-mono text-accent">{viewingEmployee.loginId || viewingEmployee.id}</span>)
+                  Viewing detailed information for <strong className="text-foreground">{viewingEmployee.name}</strong> (<span className="font-mono text-accent">{viewingEmployee.loginId || viewingEmployee.id}</span>). <strong className="text-accent">Salary Info alone can be edited by Admin.</strong>
                 </DialogDescription>
               </div>
             </DialogHeader>

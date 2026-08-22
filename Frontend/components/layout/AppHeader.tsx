@@ -235,20 +235,7 @@ export function AppHeader() {
             <span className="font-bold text-xs tracking-tight">Ask AI</span>
           </Button>
 
-          {/* Role View Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/15 border border-accent/30 text-accent text-xs font-semibold">
-            {activeRole === 'admin' ? (
-              <>
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span>Admin View</span>
-              </>
-            ) : (
-              <>
-                <UserCheck className="h-3.5 w-3.5" />
-                <span>Employee View</span>
-              </>
-            )}
-          </div>
+
 
           {/* Notifications Icon with Badge */}
           <Button

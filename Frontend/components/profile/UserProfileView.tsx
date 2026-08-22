@@ -302,18 +302,28 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
         unpaidLeaveLimit: typeof unpaidLeaveLimit === 'number' ? unpaidLeaveLimit : Number(unpaidLeaveLimit) || 10,
       };
 
-      const response = await api.patch('/auth/me', payload);
-      const updatedUser = response.data?.user || response.data;
+      if (employeeData?.id) {
+        await api.patch(`/employees/${employeeData.id}`, payload);
+        useEmployeeStore.getState().updateEmployee(employeeData.id, payload);
+        useEmployeeStore.getState().fetchEmployees();
+        snackbar.success(`Salary & profile configuration saved for ${employeeData.name || 'employee'}!`);
+      } else {
+        const response = await api.patch('/auth/me', payload);
+        const updatedUser = response.data?.user || response.data;
 
-      if (user && token) {
-        setAuth({
-          ...user,
-          ...payload,
-          ...(updatedUser || {}),
-        }, token);
+        if (user && token) {
+          setAuth({
+            ...user,
+            ...payload,
+            ...(updatedUser || {}),
+          }, token);
+        }
+
+        // Refresh central employee store so admin overview and list views update avatars immediately
+        useEmployeeStore.getState().fetchEmployees();
+
+        snackbar.success('Profile changes saved successfully to MongoDB!');
       }
-
-      snackbar.success('Profile changes saved successfully to MongoDB!');
     } catch (err: any) {
       snackbar.error(err?.response?.data?.message || err?.message || 'Failed to save profile changes.');
     } finally {
@@ -843,7 +853,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="e.g. 50000"
                       value={monthlyWage}
                       onChange={(e) => setMonthlyWage(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly && !isAdmin}
                       className="w-32 h-8 text-xs font-mono font-bold bg-card disabled:opacity-80"
                     />
                     <span>/ Month</span>
@@ -868,7 +878,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="5"
                       value={workingDaysPerWeek}
                       onChange={(e) => setWorkingDaysPerWeek(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly && !isAdmin}
                       className="w-16 h-8 text-xs font-bold bg-card disabled:opacity-80"
                     />
                     <span className="text-muted-foreground">Days</span>
@@ -883,7 +893,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="1"
                       value={breakTimeHours}
                       onChange={(e) => setBreakTimeHours(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly && !isAdmin}
                       className="w-16 h-8 text-xs font-bold bg-card disabled:opacity-80"
                     />
                     <span className="text-muted-foreground">/ hrs</span>
@@ -931,7 +941,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                         placeholder="24"
                         value={paidLeaveLimit}
                         onChange={(e) => setPaidLeaveLimit(e.target.value === '' ? '' : Number(e.target.value))}
-                        disabled={isReadOnly}
+                        disabled={isReadOnly && !isAdmin}
                         className="h-8 text-xs font-bold font-mono bg-card disabled:opacity-80"
                       />
                       <span className="text-muted-foreground font-semibold">Days / Year</span>
@@ -946,7 +956,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                         placeholder="12"
                         value={sickLeaveLimit}
                         onChange={(e) => setSickLeaveLimit(e.target.value === '' ? '' : Number(e.target.value))}
-                        disabled={isReadOnly}
+                        disabled={isReadOnly && !isAdmin}
                         className="h-8 text-xs font-bold font-mono bg-card disabled:opacity-80"
                       />
                       <span className="text-muted-foreground font-semibold">Days / Year</span>
@@ -961,7 +971,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                         placeholder="10"
                         value={unpaidLeaveLimit}
                         onChange={(e) => setUnpaidLeaveLimit(e.target.value === '' ? '' : Number(e.target.value))}
-                        disabled={isReadOnly}
+                        disabled={isReadOnly && !isAdmin}
                         className="h-8 text-xs font-bold font-mono bg-card disabled:opacity-80"
                       />
                       <span className="text-muted-foreground font-semibold">Days / Year</span>
@@ -1089,7 +1099,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="12"
                       value={pfRate}
                       onChange={(e) => setPfRate(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly && !isAdmin}
                       className="w-14 h-7 text-xs font-mono bg-card disabled:opacity-80"
                     />
                     <span className="text-muted-foreground">%</span>
@@ -1130,7 +1140,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="200"
                       value={profTax}
                       onChange={(e) => setProfTax(e.target.value === '' ? '' : Number(e.target.value))}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly && !isAdmin}
                       className="w-20 h-8 text-xs font-bold bg-card disabled:opacity-80"
                     />
                     <span className="text-muted-foreground">₹ / month</span>
@@ -1139,6 +1149,23 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
               </div>
             </div>
           </div>
+
+          {/* Admin Save Salary Configuration Action */}
+          {isAdmin && (
+            <div className="flex items-center justify-between p-4 rounded-2xl border border-accent/40 bg-accent/10 shadow-2xs">
+              <span className="text-xs font-bold text-foreground">
+                Admin Privilege: Edit and save custom wage, PF rate, professional tax, and annual leave quotas for {profileData.name || 'this employee'}.
+              </span>
+              <Button
+                onClick={handleSaveProfile}
+                disabled={isSaving}
+                className="bg-accent text-accent-foreground font-extrabold text-xs px-6 h-9 gap-2 shadow-md cursor-pointer hover:bg-accent/90 shrink-0"
+              >
+                <Save className="h-4 w-4" />
+                {isSaving ? "Saving Configuration..." : `Save Salary Config (${profileData.name || 'Employee'})`}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

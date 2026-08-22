@@ -78,12 +78,42 @@ export class EmployeeService {
 
   static async getAllEmployees() {
     await this.ensureSeedData();
-    return this.collection().find({}).toArray();
+    const employees = await this.collection().find({}).toArray();
+    const users = await this.usersCollection().find({}).toArray();
+
+    return employees.map((emp) => {
+      const match = users.find(
+        (u) =>
+          (u.email && emp.email && u.email.toLowerCase() === emp.email.toLowerCase()) ||
+          u.employeeId === emp.employeeCode ||
+          u.id === emp.id
+      );
+      return {
+        ...emp,
+        avatarUrl: match?.avatarUrl || emp.avatarUrl || "",
+        phone: match?.phone || emp.phone || "",
+        department: match?.department || emp.department || "",
+        designation: match?.designation || emp.designation || "",
+      };
+    });
   }
 
   static async getEmployeeById(id: string) {
     await this.ensureSeedData();
-    return this.collection().findOne({ $or: [{ id }, { employeeCode: id }] });
+    const emp = await this.collection().findOne({ $or: [{ id }, { employeeCode: id }] });
+    if (!emp) return null;
+    const user = await this.usersCollection().findOne({
+      $or: [
+        { email: emp.email },
+        { id: emp.id },
+        { employeeId: emp.employeeCode },
+      ],
+    });
+    return {
+      ...emp,
+      avatarUrl: user?.avatarUrl || emp.avatarUrl || "",
+      phone: user?.phone || emp.phone || "",
+    };
   }
 
   static async createEmployee(data: {
@@ -127,6 +157,7 @@ export class EmployeeService {
       email: normalizedEmail,
       role: (data.role || "employee").toUpperCase(),
       name: data.name.trim(),
+      avatarUrl: data.avatarUrl || "",
       passwordHash: "", // Will be set via password reset link
       emailVerified: true,
       status: "active",
@@ -160,10 +191,17 @@ export class EmployeeService {
     updates: Partial<EmployeeProfile>,
   ) {
     await this.ensureSeedData();
-    return this.collection().findOneAndUpdate(
-      { id },
+    const result = await this.collection().findOneAndUpdate(
+      { $or: [{ id }, { employeeCode: id }] },
       { $set: updates },
       { returnDocument: "after" },
     );
+    if (updates.avatarUrl) {
+      await this.usersCollection().updateMany(
+        { $or: [{ id }, { employeeId: id }] },
+        { $set: { avatarUrl: updates.avatarUrl } }
+      );
+    }
+    return result;
   }
 }

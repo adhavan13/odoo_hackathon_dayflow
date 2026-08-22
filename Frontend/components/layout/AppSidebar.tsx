@@ -46,17 +46,6 @@ const adminNavConfig: NavGroup[] = [
     ],
   },
   {
-    title: "Employee Management",
-    icon: Users,
-    items: [
-      {
-        title: "All Employees",
-        href: "/admin/employee-management/all-employees",
-      },
-      { title: "Departments", href: "/admin/employee-management/departments" },
-    ],
-  },
-  {
     title: "Attendance",
     icon: Clock,
     items: [
