@@ -16,6 +16,53 @@ export interface UserProfile {
   employeeId?: string;
   companyId?: string;
   companyName?: string;
+
+  joinDate?: string;
+  dateOfJoining?: string;
+  status?: string;
+  phone?: string;
+  mobile?: string;
+  dob?: string;
+  gender?: string;
+  maritalStatus?: string;
+  address?: string;
+  residingAddress?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  nationality?: string;
+  personalEmail?: string;
+  emergencyContact?: string;
+  manager?: string;
+  location?: string;
+  about?: string;
+  whatILove?: string;
+  interests?: string;
+  skills?: string[];
+  certifications?: string[];
+
+  bankName?: string;
+  accountNumber?: string;
+  bankAccountNo?: string;
+  ifscCode?: string;
+  panNo?: string;
+  aadhaarNo?: string;
+  uanNo?: string;
+  empCode?: string;
+  bankDetails?: {
+    bankName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    panNo?: string;
+    aadhaarNo?: string;
+    uanNo?: string;
+  };
+  monthlyWage?: number | string;
+  workingDaysPerWeek?: number | string;
+  breakTimeHours?: number | string;
+  pfRate?: number | string;
+  profTax?: number | string;
 }
 
 export interface SignupResult {

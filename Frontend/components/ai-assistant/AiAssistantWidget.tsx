@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAiAssistantStore } from '@/store/useAiAssistantStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
   MessageSquare,
   Send,
@@ -11,7 +12,6 @@ import {
   Minus,
   Maximize2,
   Trash2,
-  User,
   Clock,
   Calendar,
   CreditCard,
@@ -44,6 +44,13 @@ export function AiAssistantWidget() {
     clearHistory,
   } = useAiAssistantStore();
 
+  const { user } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
   const [displayedMessages, setDisplayedMessages] = useState<Record<string, string>>({});
@@ -61,7 +68,7 @@ export function AiAssistantWidget() {
     return () => clearInterval(interval);
   }, [isLoading]);
 
-  // Stream newest assistant message text
+  // Sync and stream chat messages
   useEffect(() => {
     if (isOpen) {
       fetchHistory();
@@ -73,7 +80,6 @@ export function AiAssistantWidget() {
       if (msg.sender === 'user') {
         setDisplayedMessages((prev) => ({ ...prev, [msg.id]: msg.message }));
       } else if (!displayedMessages[msg.id]) {
-        // Stream text for new assistant messages
         const fullText = msg.message;
         let currentLen = 0;
         const speed = Math.max(8, Math.floor(2500 / Math.max(fullText.length, 1)));
@@ -108,11 +114,11 @@ export function AiAssistantWidget() {
   const getCategoryIcon = (category?: string) => {
     switch (category) {
       case 'attendance':
-        return <Clock className="h-3.5 w-3.5 text-accent" />;
+        return <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
       case 'leave':
-        return <Calendar className="h-3.5 w-3.5 text-accent" />;
+        return <Calendar className="h-3.5 w-3.5 text-muted-foreground" />;
       case 'payroll':
-        return <DollarSign className="h-3.5 w-3.5 text-accent" />;
+        return <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />;
       case 'employee':
         return <Users className="h-3.5 w-3.5 text-muted-foreground" />;
       default:
@@ -120,16 +126,22 @@ export function AiAssistantWidget() {
     }
   };
 
+  const userAvatar = mounted && user?.avatarUrl ? user.avatarUrl : '/user.png';
+  const userName = mounted && user?.name ? user.name : 'User';
+
   if (!isOpen) {
     return (
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           onClick={toggleOpen}
-          className="h-12 px-4 rounded-full bg-slate-900 dark:bg-slate-100 text-slate-100 dark:text-slate-900 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 border border-slate-700/40 dark:border-slate-300/40 flex items-center space-x-2 font-medium text-xs tracking-wide"
+          className="h-12 px-4 rounded-full bg-slate-900 dark:bg-slate-100 text-slate-100 dark:text-slate-900 shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all duration-200 border border-slate-700/40 dark:border-slate-300/40 flex items-center space-x-2.5 font-medium text-xs tracking-wide cursor-pointer"
         >
-          <MessageSquare className="h-4 w-4" />
-          <span>HR Assistant</span>
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+          {/* Odoo / Dayflow Brand Logo */}
+          <div className="h-6 w-6 rounded-md bg-white p-0.5 shadow-2xs flex items-center justify-center shrink-0">
+            <img src="/logo.png" alt="Odoo AI" className="h-full w-full object-contain" />
+          </div>
+          <span className="font-semibold text-xs">HR Assistant</span>
+          <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse"></span>
         </Button>
       </div>
     );
@@ -138,27 +150,24 @@ export function AiAssistantWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       <Card
-        className={`w-[400px] sm:w-[460px] shadow-2xl border border-border bg-card text-card-foreground transition-all duration-200 overflow-hidden flex flex-col rounded-xl ${
-          isMinimized ? 'h-[56px]' : 'h-[580px] max-h-[85vh]'
+        className={`w-[400px] sm:w-[460px] shadow-2xl border border-border bg-card text-card-foreground transition-all duration-200 overflow-hidden flex flex-col rounded-2xl ${
+          isMinimized ? 'h-[60px]' : 'h-[580px] max-h-[85vh]'
         }`}
       >
-        {/* Header */}
-        <div className="px-4 py-3 bg-muted/60 border-b border-border flex items-center justify-between shrink-0">
+        {/* Redesigned Premium Header */}
+        <div className="px-4 py-3 bg-slate-950 text-slate-50 border-b border-slate-800/80 flex items-center justify-between shrink-0 shadow-xs">
           <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 rounded-lg bg-background border border-border flex items-center justify-center text-foreground shrink-0">
-              <MessageSquare className="h-4 w-4" />
+            {/* Odoo Logo Container */}
+            <div className="relative h-9 w-9 rounded-xl bg-white p-1 shadow-md border border-slate-200/20 flex items-center justify-center shrink-0">
+              <img src="/logo.png" alt="Odoo AI" className="h-full w-full object-contain" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-slate-950 shadow-[0_0_6px_rgba(16,185,129,0.8)]"></span>
             </div>
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <h3 className="font-bold text-sm tracking-wide text-white">Dayflow HR Assistant</h3>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-white/40 text-white bg-white/15 font-semibold">
-                  <Sparkles className="h-2.5 w-2.5 mr-0.5 text-white" /> AI Powered
-                </Badge>
+
+            <div className="flex flex-col">
+              <div className="flex items-center space-x-2">
+                <h3 className="font-bold text-xs tracking-tight text-white">Dayflow HR Assistant</h3>
               </div>
-              <p className="text-[11px] text-white/80 flex items-center space-x-1 font-medium">
-                <ShieldCheck className="h-3 w-3 text-emerald-300 shrink-0" />
-                <span>MongoDB HR Intelligence Connected</span>
-              </p>
+              <p className="text-[10px] text-slate-400 font-medium">Enterprise HR Knowledge Base</p>
             </div>
           </div>
 
@@ -170,7 +179,7 @@ export function AiAssistantWidget() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-md"
+                      className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
                       onClick={clearHistory}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -184,7 +193,7 @@ export function AiAssistantWidget() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-md"
+              className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
               onClick={toggleMinimize}
             >
               {isMinimized ? <Maximize2 className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
@@ -193,7 +202,7 @@ export function AiAssistantWidget() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-md"
+              className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
               onClick={toggleOpen}
             >
               <X className="h-4 w-4" />
@@ -208,33 +217,48 @@ export function AiAssistantWidget() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((msg) => {
                 const textToRender = displayedMessages[msg.id] ?? msg.message;
+                const isUser = msg.sender === 'user';
 
                 return (
                   <div
                     key={msg.id}
                     className={`flex items-start space-x-2.5 ${
-                      msg.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                      isUser ? 'flex-row-reverse space-x-reverse' : ''
                     }`}
                   >
+                    {/* Message Avatar: Odoo Logo for AI, Logged-in User Avatar for User */}
                     <div
-                      className={`h-7 w-7 rounded-md flex items-center justify-center shrink-0 text-xs font-semibold ${
-                        msg.sender === 'user'
-                          ? 'bg-slate-900 dark:bg-slate-100 text-slate-100 dark:text-slate-900 border border-slate-800'
-                          : 'bg-muted border border-border text-foreground'
+                      className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden shadow-2xs border ${
+                        isUser
+                          ? 'bg-slate-900 dark:bg-slate-100 text-slate-100 dark:text-slate-900 border-slate-700'
+                          : 'bg-white border-slate-200 p-0.5'
                       }`}
                     >
-                      {msg.sender === 'user' ? <User className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}
+                      {isUser ? (
+                        <img
+                          src={userAvatar}
+                          alt={userName}
+                          className="h-full w-full object-cover rounded-md"
+                          suppressHydrationWarning
+                        />
+                      ) : (
+                        <img
+                          src="/logo.png"
+                          alt="Odoo AI"
+                          className="h-full w-full object-contain"
+                        />
+                      )}
                     </div>
 
                     <div className="max-w-[88%] flex flex-col">
                       <div
-                        className={`p-3.5 rounded-lg text-xs leading-relaxed ${
-                          msg.sender === 'user'
+                        className={`p-3.5 rounded-xl text-xs leading-relaxed ${
+                          isUser
                             ? 'bg-slate-900 dark:bg-slate-100 text-slate-100 dark:text-slate-900 font-sans'
                             : 'bg-card text-foreground border border-border shadow-xs'
                         }`}
                       >
-                        {msg.sender === 'user' ? (
+                        {isUser ? (
                           <div className="whitespace-pre-wrap font-sans">{textToRender}</div>
                         ) : (
                           <div className="prose prose-xs dark:prose-invert max-w-none text-foreground text-xs leading-relaxed space-y-2">
@@ -273,7 +297,7 @@ export function AiAssistantWidget() {
 
                       <div
                         className={`text-[10px] text-muted-foreground mt-1 flex items-center space-x-1 ${
-                          msg.sender === 'user' ? 'justify-end pr-1' : 'pl-1'
+                          isUser ? 'justify-end pr-1' : 'pl-1'
                         }`}
                       >
                         {msg.category && getCategoryIcon(msg.category)}
@@ -288,10 +312,10 @@ export function AiAssistantWidget() {
 
               {isLoading && (
                 <div className="flex items-start space-x-2.5">
-                  <div className="h-7 w-7 rounded-md bg-muted border border-border flex items-center justify-center shrink-0">
-                    <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                  <div className="h-7 w-7 rounded-lg bg-white border border-slate-200 p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+                    <img src="/logo.png" alt="Odoo AI" className="h-full w-full object-contain" />
                   </div>
-                  <div className="p-3 rounded-lg bg-card border border-border text-xs text-muted-foreground flex items-center space-x-2">
+                  <div className="p-3 rounded-xl bg-card border border-border text-xs text-muted-foreground flex items-center space-x-2">
                     <div className="h-2 w-2 rounded-full bg-slate-500 animate-pulse"></div>
                     <span className="font-medium text-foreground">{LOADING_PHRASES[loadingPhraseIndex]}</span>
                   </div>
@@ -318,7 +342,7 @@ export function AiAssistantWidget() {
                   onClick={() => sendMessage()}
                   disabled={isLoading || !inputQuery.trim()}
                   size="icon"
-                  className="h-7 w-7 rounded-md bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-slate-100 dark:text-slate-900 shrink-0"
+                  className="h-7 w-7 rounded-md bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-slate-100 dark:text-slate-900 shrink-0 cursor-pointer"
                 >
                   <Send className="h-3.5 w-3.5" />
                 </Button>

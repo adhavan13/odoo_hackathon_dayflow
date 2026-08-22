@@ -11,7 +11,6 @@ import {
   User,
   LogOut,
   Bot,
-  Sparkles,
   Clock,
 } from 'lucide-react';
 import { useAuthStore, useSidebarStore, useAppStore, useAttendanceStore } from '@/store';
@@ -124,6 +123,9 @@ export function AppHeader() {
     router.push('/');
   };
 
+  const displayAvatar = mounted && user?.avatarUrl ? user.avatarUrl : '/user.png';
+  const displayName = mounted && user?.name ? user.name : 'User';
+
   return (
     <>
       <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur px-4 md:px-6">
@@ -162,7 +164,6 @@ export function AppHeader() {
         <div className="flex items-center gap-2 md:gap-3">
           {/* Systray Check IN / Check OUT Widget */}
           <div className="flex items-center gap-2 p-1 px-2.5 rounded-xl border border-border bg-card shadow-2xs">
-            {/* Status Dot: Red when checked out, Green when checked in */}
             <span
               className={`h-2.5 w-2.5 rounded-full shrink-0 transition-colors ${
                 isCheckedIn ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
@@ -247,10 +248,15 @@ export function AppHeader() {
                 className="flex items-center gap-2 pl-2 outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-accent rounded-full p-1 transition-colors hover:bg-muted/50"
               >
                 <div className="h-8 w-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
-                  <img src={user?.avatarUrl || '/user.png'} alt={user?.name || 'User'} className="h-full w-full object-cover" />
+                  <img
+                    src={displayAvatar}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                    suppressHydrationWarning
+                  />
                 </div>
-                <div className="hidden sm:flex flex-col text-left">
-                  <span suppressHydrationWarning className="text-xs font-semibold leading-tight">{user?.name || 'User'}</span>
+                <div className="hidden sm:flex flex-col text-left" suppressHydrationWarning>
+                  <span suppressHydrationWarning className="text-xs font-semibold leading-tight">{displayName}</span>
                   <span suppressHydrationWarning className="text-[10px] text-muted-foreground capitalize">{activeRole}</span>
                 </div>
               </button>
@@ -258,9 +264,9 @@ export function AppHeader() {
             <DropdownMenuContent align="end" className="w-60 mt-1">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-bold leading-none text-foreground">{user?.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                  {user?.employeeId && (
+                  <p className="text-sm font-bold leading-none text-foreground">{displayName}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{mounted ? user?.email : ''}</p>
+                  {mounted && user?.employeeId && (
                     <p className="text-[11px] text-accent font-mono font-medium pt-0.5">
                       ID: {user.employeeId}
                     </p>
