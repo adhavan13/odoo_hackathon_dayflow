@@ -1,15 +1,15 @@
-import { getDatabase } from '../config/database';
+import { getDatabase } from "../config/database";
 
 export interface LeaveRequest {
   id: string;
   employeeId: string;
   employeeName: string;
-  type: 'paid' | 'casual' | 'sick' | 'unpaid' | 'maternity';
+  type: "paid" | "casual" | "sick" | "unpaid" | "maternity";
   startDate: string;
   endDate: string;
   days: number;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   appliedOn: string;
 }
 
@@ -22,42 +22,47 @@ export interface LeaveBalance {
 
 const seedLeaveRequests: LeaveRequest[] = [
   {
-    id: 'lr_1',
-    employeeId: 'emp_1',
-    employeeName: 'Alex Rivera',
-    type: 'casual',
-    startDate: '2026-08-25',
-    endDate: '2026-08-27',
+    id: "lr_1",
+    employeeId: "emp_1",
+    employeeName: "Alex Rivera",
+    type: "casual",
+    startDate: "2026-08-25",
+    endDate: "2026-08-27",
     days: 3,
-    reason: 'Family event and travel.',
-    status: 'pending',
-    appliedOn: '2026-08-20',
+    reason: "Family event and travel.",
+    status: "pending",
+    appliedOn: "2026-08-20",
   },
   {
-    id: 'lr_2',
-    employeeId: 'emp_3',
-    employeeName: 'Michael Chen',
-    type: 'sick',
-    startDate: '2026-08-10',
-    endDate: '2026-08-11',
+    id: "lr_2",
+    employeeId: "emp_3",
+    employeeName: "Michael Chen",
+    type: "sick",
+    startDate: "2026-08-10",
+    endDate: "2026-08-11",
     days: 2,
-    reason: 'Fever and medical rest.',
-    status: 'approved',
-    appliedOn: '2026-08-09',
+    reason: "Fever and medical rest.",
+    status: "approved",
+    appliedOn: "2026-08-09",
   },
 ];
 
 export class LeaveService {
-  private static collection() { return getDatabase().collection<LeaveRequest>('leave_requests'); }
+  private static collection() {
+    return getDatabase().collection<LeaveRequest>("leave_requests");
+  }
 
   private static async ensureSeedData() {
     const collection = this.collection();
-    if (await collection.countDocuments() === 0) await collection.insertMany(seedLeaveRequests);
+    if ((await collection.countDocuments()) === 0)
+      await collection.insertMany(seedLeaveRequests);
   }
 
   static async getLeaveRequests(employeeId?: string) {
     await this.ensureSeedData();
-    return this.collection().find(employeeId ? { employeeId } : {}).toArray();
+    return this.collection()
+      .find(employeeId ? { employeeId } : {})
+      .toArray();
   }
 
   static async getLeaveBalance(employeeId: string): Promise<LeaveBalance> {
@@ -69,23 +74,25 @@ export class LeaveService {
     };
   }
 
-  static async applyLeave(data: Omit<LeaveRequest, 'id' | 'status' | 'appliedOn'>) {
+  static async applyLeave(
+    data: Omit<LeaveRequest, "id" | "status" | "appliedOn">,
+  ) {
     await this.ensureSeedData();
     const newRequest: LeaveRequest = {
       ...data,
       id: `lr_${Date.now()}`,
-      status: 'pending',
-      appliedOn: new Date().toISOString().split('T')[0],
+      status: "pending",
+      appliedOn: new Date().toISOString().split("T")[0],
     };
     await this.collection().insertOne(newRequest);
     return newRequest;
   }
 
-  static async updateLeaveStatus(id: string, status: 'approved' | 'rejected') {
+  static async updateLeaveStatus(id: string, status: "approved" | "rejected") {
     await this.ensureSeedData();
     const req = await this.collection().findOne({ id });
     if (!req) {
-      throw new Error('Leave request not found');
+      throw new Error("Leave request not found");
     }
     await this.collection().updateOne({ id }, { $set: { status } });
     return { ...req, status };
