@@ -9,7 +9,6 @@ import {
   Search,
   CheckCircle2,
   Users,
-  Building2,
   UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,8 +19,8 @@ export default function OrganizationSettingsPage() {
   const { employees, updateEmployee } = useEmployeeStore();
 
   // Role Management State
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [search, setSearch] = useState<string>('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [editingRoles, setEditingRoles] = useState<Record<string, 'admin' | 'employee'>>({});
 
   const handleRoleSelect = (empId: string, newRole: 'admin' | 'employee') => {
@@ -32,8 +31,12 @@ export default function OrganizationSettingsPage() {
     const targetRole = editingRoles[emp.id] || emp.role;
     try {
       await updateEmployee(emp.id, { role: targetRole });
-      snackbar.success(`Updated system role for ${emp.name} to ${targetRole === 'admin' ? 'Admin / HR Officer' : 'Employee'}.`);
-    } catch (err: any) {
+      snackbar.success(
+        `Updated system role for ${emp.name} to ${
+          targetRole === 'admin' ? 'Admin / HR Officer' : 'Employee'
+        }.`
+      );
+    } catch {
       snackbar.error('Failed to update role.');
     }
   };
@@ -99,7 +102,9 @@ export default function OrganizationSettingsPage() {
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-base font-extrabold text-foreground">Employee System Roles & Access Permissions</h2>
+                <h2 className="text-base font-extrabold text-foreground">
+                  Employee System Roles & Access Permissions
+                </h2>
                 <p className="text-xs text-muted-foreground">
                   View employee details, login IDs, job titles, and update system role assignments
                 </p>
@@ -163,7 +168,11 @@ export default function OrganizationSettingsPage() {
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-2xl bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-sm overflow-hidden shrink-0">
                               {emp.avatarUrl ? (
-                                <img src={emp.avatarUrl} alt={emp.name} className="h-full w-full object-cover" />
+                                <img
+                                  src={emp.avatarUrl}
+                                  alt={emp.name}
+                                  className="h-full w-full object-cover"
+                                />
                               ) : (
                                 emp.name.substring(0, 2).toUpperCase()
                               )}
@@ -190,7 +199,9 @@ export default function OrganizationSettingsPage() {
                         <td className="p-4">
                           <CustomSelect
                             value={currentSelectedRole}
-                            onValueChange={(val) => handleRoleSelect(emp.id, val as 'admin' | 'employee')}
+                            onValueChange={(val) =>
+                              handleRoleSelect(emp.id, val as 'admin' | 'employee')
+                            }
                             options={[
                               { label: 'Employee', value: 'employee' },
                               { label: 'Admin / HR Officer', value: 'admin' },
@@ -203,7 +214,7 @@ export default function OrganizationSettingsPage() {
                         <td className="p-4 text-right">
                           <Button
                             size="sm"
-                            onClick={() => handleSaveRole(emp)}
+                            onClick={() => void handleSaveRole(emp)}
                             className={`h-8 text-xs font-bold px-3 gap-1.5 cursor-pointer ${
                               isModified
                                 ? 'bg-emerald-600 text-white hover:bg-emerald-700 animate-pulse'
