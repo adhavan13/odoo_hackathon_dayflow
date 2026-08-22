@@ -217,21 +217,32 @@ export default function AdminDailyAttendancePage() {
                       <td className="p-4 font-mono font-bold text-foreground">{rec.checkIn}</td>
 
                       {/* Check Out */}
-                      <td className="p-4 font-mono font-bold text-foreground">{rec.checkOut || '19:00'}</td>
+                      <td className="p-4 font-mono font-bold text-foreground">
+                        {rec.checkOut ? (
+                          rec.checkOut
+                        ) : (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold animate-pulse">
+                            Active (In Shift)
+                          </span>
+                        )}
+                      </td>
 
                       {/* Work Hours */}
-                      <td className="p-4 font-mono font-bold text-accent">{rec.workHours || '09:00'}</td>
+                      <td className="p-4 font-mono font-bold text-accent">
+                        {rec.workHours || '08:30'}
+                      </td>
 
                       {/* Extra Hours */}
                       <td className="p-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {rec.extraHours || '01:00'}
+                        {rec.extraHours || '00:00'}
                       </td>
 
                       {/* Status */}
                       <td className="p-4 text-right">
                         {rec.status === 'Present' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                            Present
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                            {rec.checkOut ? 'Present' : 'Active Shift'}
                           </span>
                         )}
                         {rec.status === 'Late' && (

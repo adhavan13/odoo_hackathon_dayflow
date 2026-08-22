@@ -1,3 +1,5 @@
+import { getDatabase } from "../config/database";
+
 export interface AttendanceLog {
   id: string;
   employeeId: string;
@@ -5,54 +7,70 @@ export interface AttendanceLog {
   date: string;
   checkIn: string;
   checkOut?: string;
-  status: 'present' | 'absent' | 'late' | 'half_day' | 'on_leave';
+  status: "present" | "absent" | "late" | "half_day" | "on_leave";
   hoursWorked: number;
 }
 
-let attendanceLogs: AttendanceLog[] = [
+const seedAttendanceLogs: AttendanceLog[] = [
   {
-    id: 'att_01',
-    employeeId: 'emp_1',
-    employeeName: 'Alex Rivera',
-    date: new Date().toISOString().split('T')[0],
-    checkIn: '09:00 AM',
-    checkOut: '05:30 PM',
-    status: 'present',
+    id: "att_01",
+    employeeId: "emp_1",
+    employeeName: "Alex Rivera",
+    date: new Date().toISOString().split("T")[0],
+    checkIn: "09:00 AM",
+    checkOut: "05:30 PM",
+    status: "present",
     hoursWorked: 8.5,
   },
   {
-    id: 'att_02',
-    employeeId: 'emp_2',
-    employeeName: 'Sarah Jenkins',
-    date: new Date().toISOString().split('T')[0],
-    checkIn: '08:45 AM',
-    checkOut: '05:00 PM',
-    status: 'present',
+    id: "att_02",
+    employeeId: "emp_2",
+    employeeName: "Sarah Jenkins",
+    date: new Date().toISOString().split("T")[0],
+    checkIn: "08:45 AM",
+    checkOut: "05:00 PM",
+    status: "present",
     hoursWorked: 8.25,
   },
   {
-    id: 'att_03',
-    employeeId: 'emp_3',
-    employeeName: 'Michael Chen',
-    date: new Date().toISOString().split('T')[0],
-    checkIn: '09:30 AM',
-    status: 'late',
+    id: "att_03",
+    employeeId: "emp_3",
+    employeeName: "Michael Chen",
+    date: new Date().toISOString().split("T")[0],
+    checkIn: "09:30 AM",
+    status: "late",
     hoursWorked: 4.5,
   },
 ];
 
 export class AttendanceService {
-  static async checkIn(employeeId: string, employeeName = 'Alex Rivera') {
-    const today = new Date().toISOString().split('T')[0];
-    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  private static collection() {
+    return getDatabase().collection<AttendanceLog>("attendance");
+  }
 
-    const existing = attendanceLogs.find(
-      (l) => l.employeeId === employeeId && l.date === today
-    );
+  private static async ensureSeedData() {
+    const collection = this.collection();
+    if ((await collection.countDocuments()) === 0)
+      await collection.insertMany(seedAttendanceLogs);
+  }
+
+  static async checkIn(employeeId: string, employeeName = "Alex Rivera") {
+    await this.ensureSeedData();
+    const today = new Date().toISOString().split("T")[0];
+    const nowTime = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const collection = this.collection();
+    const existing = await collection.findOne({ employeeId, date: today });
 
     if (existing) {
-      existing.checkIn = nowTime;
-      return existing;
+      await collection.updateOne(
+        { id: existing.id },
+        { $set: { checkIn: nowTime } },
+      );
+      return { ...existing, checkIn: nowTime };
     }
 
     const newLog: AttendanceLog = {
@@ -61,48 +79,52 @@ export class AttendanceService {
       employeeName,
       date: today,
       checkIn: nowTime,
-      status: 'present',
+      status: "present",
       hoursWorked: 0,
     };
 
-    attendanceLogs.unshift(newLog);
+    await collection.insertOne(newLog);
     return newLog;
   }
 
   static async checkOut(employeeId: string) {
-    const today = new Date().toISOString().split('T')[0];
-    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    await this.ensureSeedData();
+    const today = new Date().toISOString().split("T")[0];
+    const nowTime = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-    const log = attendanceLogs.find(
-      (l) => l.employeeId === employeeId && l.date === today
-    );
+    const collection = this.collection();
+    const log = await collection.findOne({ employeeId, date: today });
 
     if (log) {
-      log.checkOut = nowTime;
-      log.hoursWorked = 8.0;
-      return log;
+      await collection.updateOne(
+        { id: log.id },
+        { $set: { checkOut: nowTime, hoursWorked: 8.0 } },
+      );
+      return { ...log, checkOut: nowTime, hoursWorked: 8.0 };
     }
 
     const newLog: AttendanceLog = {
       id: `att_${Date.now()}`,
       employeeId,
-      employeeName: 'Alex Rivera',
+      employeeName: "Alex Rivera",
       date: today,
-      checkIn: '09:00 AM',
+      checkIn: "09:00 AM",
       checkOut: nowTime,
-      status: 'present',
+      status: "present",
       hoursWorked: 8.0,
     };
 
-    attendanceLogs.unshift(newLog);
+    await collection.insertOne(newLog);
     return newLog;
   }
 
   static async getTodayStatus(employeeId: string) {
-    const today = new Date().toISOString().split('T')[0];
-    const log = attendanceLogs.find(
-      (l) => l.employeeId === employeeId && l.date === today
-    );
+    await this.ensureSeedData();
+    const today = new Date().toISOString().split("T")[0];
+    const log = await this.collection().findOne({ employeeId, date: today });
 
     return {
       date: today,
@@ -111,14 +133,14 @@ export class AttendanceService {
       checkInTime: log?.checkIn || null,
       checkOutTime: log?.checkOut || null,
       hoursWorked: log?.hoursWorked || 0,
-      status: log?.status || 'absent',
+      status: log?.status || "absent",
     };
   }
 
   static async getHistory(employeeId?: string) {
-    if (employeeId) {
-      return attendanceLogs.filter((l) => l.employeeId === employeeId);
-    }
-    return attendanceLogs;
+    await this.ensureSeedData();
+    return this.collection()
+      .find(employeeId ? { employeeId } : {})
+      .toArray();
   }
 }

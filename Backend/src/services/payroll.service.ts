@@ -1,3 +1,5 @@
+import { getDatabase } from "../config/database";
+
 export interface SalarySlip {
   id: string;
   employeeId: string;
@@ -9,7 +11,7 @@ export interface SalarySlip {
   allowances: number;
   deductions: number;
   netPay: number;
-  status: 'paid' | 'pending' | 'processing';
+  status: "paid" | "pending" | "processing";
   generatedDate: string;
 }
 
@@ -25,46 +27,58 @@ export interface SalaryStructure {
   netSalary: number;
 }
 
-const mockSlips: SalarySlip[] = [
+const seedSlips: SalarySlip[] = [
   {
-    id: 'slp_01',
-    employeeId: 'emp_1',
-    employeeName: 'Alex Rivera',
-    month: 'July',
+    id: "slp_01",
+    employeeId: "emp_1",
+    employeeName: "Alex Rivera",
+    month: "July",
     year: 2026,
     basicSalary: 6000,
     hra: 2400,
     allowances: 1600,
     deductions: 800,
     netPay: 9200,
-    status: 'paid',
-    generatedDate: '2026-07-31',
+    status: "paid",
+    generatedDate: "2026-07-31",
   },
   {
-    id: 'slp_02',
-    employeeId: 'emp_1',
-    employeeName: 'Alex Rivera',
-    month: 'June',
+    id: "slp_02",
+    employeeId: "emp_1",
+    employeeName: "Alex Rivera",
+    month: "June",
     year: 2026,
     basicSalary: 6000,
     hra: 2400,
     allowances: 1600,
     deductions: 800,
     netPay: 9200,
-    status: 'paid',
-    generatedDate: '2026-06-30',
+    status: "paid",
+    generatedDate: "2026-06-30",
   },
 ];
 
 export class PayrollService {
-  static async getSalarySlips(employeeId?: string) {
-    if (employeeId) {
-      return mockSlips.filter((s) => s.employeeId === employeeId);
-    }
-    return mockSlips;
+  private static collection() {
+    return getDatabase().collection<SalarySlip>("salary_slips");
   }
 
-  static async getSalaryStructure(employeeId: string): Promise<SalaryStructure> {
+  private static async ensureSeedData() {
+    const collection = this.collection();
+    if ((await collection.countDocuments()) === 0)
+      await collection.insertMany(seedSlips);
+  }
+
+  static async getSalarySlips(employeeId?: string) {
+    await this.ensureSeedData();
+    return this.collection()
+      .find(employeeId ? { employeeId } : {})
+      .toArray();
+  }
+
+  static async getSalaryStructure(
+    employeeId: string,
+  ): Promise<SalaryStructure> {
     return {
       employeeId,
       basicSalary: 6000,
@@ -79,12 +93,13 @@ export class PayrollService {
   }
 
   static async getPayrollOverview() {
+    await this.ensureSeedData();
     return {
-      totalPayrollMonth: '$145,200',
+      totalPayrollMonth: "$145,200",
       totalEmployeesPaid: 34,
       pendingApprovals: 2,
-      nextPayDate: '2026-08-31',
-      recentSlips: mockSlips,
+      nextPayDate: "2026-08-31",
+      recentSlips: await this.collection().find({}).toArray(),
     };
   }
 }
