@@ -72,9 +72,11 @@ export default function RootSignInPage() {
 
         {/* Top Header */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground font-bold text-2xl shadow-lg border border-accent/40">
-            D
-          </div>
+          <img
+            src="/logo.png"
+            alt="Dayflow Logo"
+            className="h-12 w-12 object-contain rounded-2xl bg-card p-1 border border-border shadow-lg"
+          />
           <div>
             <h1 className="font-extrabold text-xl tracking-tight leading-none text-foreground">Dayflow</h1>
             <p className="text-xs text-muted-foreground mt-0.5 font-medium">Human Resource Management System</p>

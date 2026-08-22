@@ -194,9 +194,11 @@ export function AppSidebar() {
       {/* Brand Header */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground font-bold text-lg shadow-sm">
-            D
-          </div>
+          <img
+            src="/logo.png"
+            alt="Dayflow Logo"
+            className="h-9 w-9 shrink-0 object-contain rounded-lg p-0.5 bg-card border border-border/40 shadow-xs"
+          />
           {!isCollapsed && (
             <div className="flex flex-col truncate">
               <span className="font-bold text-sm tracking-tight text-sidebar-foreground">Dayflow HRMS</span>

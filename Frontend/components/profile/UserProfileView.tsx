@@ -179,7 +179,10 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs bg-muted/40 p-4 rounded-xl border border-border/60 shrink-0 w-full md:w-auto">
             <div>
               <span className="text-muted-foreground block">Company</span>
-              <span className="font-semibold text-foreground">{profileData.company}</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <img src="/logo.png" alt="Company Logo" className="h-4 w-4 object-contain rounded" />
+                <span className="font-semibold text-foreground">{profileData.company}</span>
+              </div>
             </div>
             <div>
               <span className="text-muted-foreground block">Department</span>

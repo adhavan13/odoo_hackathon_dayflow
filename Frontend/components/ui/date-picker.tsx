@@ -29,7 +29,7 @@ export function DatePicker({
 
   const handleSelect = (date?: Date) => {
     if (date) {
-      const formattedIso = format(date, 'yyyy-MM-DD');
+      const formattedIso = format(date, 'yyyy-MM-dd');
       onChange?.(formattedIso);
       setIsOpen(false);
     }
@@ -41,13 +41,15 @@ export function DatePicker({
         <Button
           variant="outline"
           className={cn(
-            'justify-start text-left font-semibold text-xs h-9 px-3 gap-2 border-input bg-card hover:bg-accent hover:text-accent-foreground group transition-colors cursor-pointer shadow-2xs',
+            'justify-start text-left font-semibold text-xs h-9 px-3 gap-2 border-input bg-card text-foreground hover:bg-accent/10 hover:border-accent/40 hover:text-accent group transition-colors cursor-pointer shadow-2xs',
             !selectedDate && 'text-muted-foreground font-normal',
             className
           )}
         >
-          <CalendarIcon className="h-4 w-4 text-accent group-hover:text-accent-foreground shrink-0 transition-colors" />
-          <span className="group-hover:text-accent-foreground">{selectedDate ? format(selectedDate, formatString) : placeholder}</span>
+          <CalendarIcon className="h-4 w-4 text-accent shrink-0 transition-colors" />
+          <span className="text-foreground font-semibold group-hover:text-accent transition-colors">
+            {selectedDate ? format(selectedDate, formatString) : placeholder}
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 z-50 bg-popover border border-border shadow-xl rounded-xl" align="start">

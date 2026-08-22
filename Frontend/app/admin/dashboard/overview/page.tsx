@@ -112,11 +112,12 @@ export default function AdminOverviewPage() {
   };
 
   // Mock initial attendance status mapping
-  const getEmployeeStatus = (emp: Employee) => {
+  const getEmployeeStatus = (emp: Employee): 'Present' | 'On Leave' | 'Absent' => {
     if (emp.role === 'admin') return 'Present';
     if (emp.name.toLowerCase().includes('alex')) return 'Present';
     if (emp.name.toLowerCase().includes('sarah')) return 'Present';
     if (emp.id.endsWith('3') || emp.name.toLowerCase().includes('john')) return 'On Leave';
+    if (emp.status === 'Inactive') return 'Absent';
     return emp.status === 'On Leave' ? 'On Leave' : 'Present';
   };
 
