@@ -1,8 +1,13 @@
 import app from './app';
 import { config } from './config/env.config';
+import { connectDatabase } from './config/database';
 
-const server = app.listen(config.port, () => {
-  console.log(`Server running on port ${config.port} in ${config.nodeEnv} mode`);
-});
+const startServer = async () => {
+  await connectDatabase();
+  const server = app.listen(config.port, () => {
+    console.log(`Server running on port ${config.port} in ${config.nodeEnv} mode`);
+  });
+  return server;
+};
 
-export default server;
+export default startServer();
