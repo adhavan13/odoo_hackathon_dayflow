@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import { api } from '@/utils/api';
 import { snackbar } from '@/utils/snackbar';
+import { generateLoginId, generateTemporaryPassword } from '@/utils/idGenerator';
 
 export interface Employee {
   id: string;
+  loginId: string;
   name: string;
   email: string;
   role: 'admin' | 'employee';
@@ -13,6 +15,7 @@ export interface Employee {
   avatarUrl?: string;
   status: 'Active' | 'On Leave' | 'Inactive';
   joinDate: string;
+  temporaryPassword?: string;
 }
 
 interface EmployeeState {
@@ -21,14 +24,15 @@ interface EmployeeState {
   isLoading: boolean;
   fetchEmployees: () => Promise<void>;
   selectEmployee: (emp: Employee | null) => void;
-  addEmployee: (emp: Omit<Employee, 'id'>) => Promise<void>;
+  addEmployee: (empData: Omit<Employee, 'id' | 'loginId'> & { firstName?: string; lastName?: string }) => Promise<Employee>;
   updateEmployee: (id: string, emp: Partial<Employee>) => Promise<void>;
 }
 
-export const useEmployeeStore = create<EmployeeState>((set) => ({
+export const useEmployeeStore = create<EmployeeState>((set, get) => ({
   employees: [
     {
       id: 'usr_admin_01',
+      loginId: 'OISAJE20220001',
       name: 'Sarah Jenkins',
       email: 'sarah.j@company.com',
       role: 'admin',
@@ -41,6 +45,7 @@ export const useEmployeeStore = create<EmployeeState>((set) => ({
     },
     {
       id: 'usr_emp_02',
+      loginId: 'OIALRI20230002',
       name: 'Alex Rivera',
       email: 'alex.rivera@company.com',
       role: 'employee',
@@ -71,15 +76,38 @@ export const useEmployeeStore = create<EmployeeState>((set) => ({
 
   selectEmployee: (selectedEmployee) => set({ selectedEmployee }),
 
-  addEmployee: async (empData) => {
+  addEmployee: async (empInput) => {
     set({ isLoading: true });
     try {
-      const response = await api.post('/employees', empData);
-      snackbar.success('Employee created successfully');
-      const newEmp: Employee = response.data || { ...empData, id: `emp_${Date.now()}` };
+      const nameParts = empInput.name.trim().split(' ');
+      const firstName = empInput.firstName || nameParts[0] || 'Emp';
+      const lastName = empInput.lastName || nameParts.slice(1).join(' ') || 'User';
+
+      const joinYear = new Date(empInput.joinDate || Date.now()).getFullYear();
+      const serialNum = get().employees.length + 1;
+
+      const generatedId = generateLoginId(firstName, lastName, joinYear, serialNum);
+      const tempPass = generateTemporaryPassword();
+
+      const newEmp: Employee = {
+        ...empInput,
+        id: `emp_${Date.now()}`,
+        loginId: generatedId,
+        temporaryPassword: tempPass,
+      };
+
+      try {
+        await api.post('/employees', newEmp);
+      } catch (e) {
+        // Fallback for offline mode
+      }
+
       set((state) => ({ employees: [...state.employees, newEmp] }));
+      snackbar.success(`Created employee: Login ID ${generatedId}`);
+      return newEmp;
     } catch (error: any) {
       snackbar.error(error.message || 'Failed to add employee');
+      throw error;
     } finally {
       set({ isLoading: false });
     }

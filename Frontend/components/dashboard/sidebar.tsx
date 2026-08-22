@@ -51,9 +51,11 @@ export function Sidebar({
       {/* Logo */}
       <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-accent text-accent-foreground shadow-xs">
-            <CircleDollarSign className="w-5 h-5" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Dayflow Logo"
+            className="w-9 h-9 rounded-lg shrink-0 object-contain p-0.5 bg-card border border-border/40 shadow-xs"
+          />
           <span
             className={cn(
               "font-semibold text-lg text-sidebar-foreground whitespace-nowrap transition-all duration-300",
