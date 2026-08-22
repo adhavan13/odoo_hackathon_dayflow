@@ -1,11 +1,17 @@
-import { PageContainer } from '@/components/ui/page-container';
+'use client';
 
-export default function LeaveCalendarPage() {
+import React from 'react';
+import { PageContainer } from '@/components/ui/page-container';
+import { TimeOffView } from '@/components/leave/TimeOffView';
+
+export default function AdminLeaveCalendarPage() {
   return (
     <PageContainer
-      title="Leave Calendar"
-      subtitle="Visual calendar view of employee leaves and scheduled time-off"
-      badge="Calendar"
-    />
+      title="Workforce Time Off Calendar"
+      subtitle="Full 12-month calendar matrix displaying approved, pending, and refused time off across all departments"
+      badge="Admin / HR"
+    >
+      <TimeOffView forcedRole="admin" />
+    </PageContainer>
   );
 }

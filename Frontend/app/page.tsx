@@ -21,47 +21,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function RootSignInPage() {
-  const [role, setRole] = useState<UserRole>('employee');
-  const [loginIdOrEmail, setLoginIdOrEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+export type Section = 'overview' | 'pipeline' | 'deals' | 'team' | 'reports' | 'customers' | 'forecasting' | 'settings';
 
-  const { setAuth } = useAuthStore();
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!loginIdOrEmail.trim() || !password.trim()) {
-      snackbar.error('Please enter both Login ID/Email and Password.');
-      return;
-    }
-
-    setIsLoading(true);
-
-    setTimeout(() => {
-      const mockUser = {
-        id: role === 'admin' ? 'usr_admin_01' : 'usr_emp_02',
-        name: role === 'admin' ? 'Sarah Jenkins' : 'Alex Rivera',
-        email: loginIdOrEmail.includes('@') ? loginIdOrEmail : `${loginIdOrEmail.toLowerCase()}@company.com`,
-        role: role,
-        avatarUrl:
-          role === 'admin'
-            ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
-            : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-        department: role === 'admin' ? 'Human Resources' : 'Software Engineering',
-        designation: role === 'admin' ? 'HR Officer / Admin' : 'Senior Frontend Developer',
-      };
-
-      setAuth(mockUser, 'mock_jwt_token_' + Date.now());
-      snackbar.success(`Welcome back, ${mockUser.name}!`);
-      setIsLoading(false);
-
-      if (typeof window !== 'undefined') {
-        window.location.href = role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
-      }
-    }, 500);
-  };
+export default function Home() {
+  const { switchRole } = useAuthStore();
 
   return (
     <div className="h-screen w-full overflow-hidden bg-background text-foreground flex flex-col lg:flex-row selection:bg-accent selection:text-accent-foreground">
