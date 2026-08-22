@@ -5,20 +5,63 @@ import { PageContainer } from "@/components/ui/page-container";
 import {
   ChevronLeft,
   ChevronRight,
-  Calendar as CalendarIcon,
   Search,
   Filter,
   Users,
   CheckCircle2,
   Clock,
   Plane,
-  AlertCircle,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
+
+export interface DailyAttendanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  department?: string;
+  date: string;
+  checkIn: string | null;
+  checkOut?: string | null;
+  workHours?: string;
+  extraHours?: string;
+  workSummaryNote?: string;
+  status: "Present" | "Late" | "Absent" | "Half Day" | "On Leave";
+}
+
+interface EmployeeResponseItem {
+  id: string;
+  name: string;
+  department?: string;
+}
+
+interface AttendanceResponseItem {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  department?: string;
+  date?: string;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  workHours?: string;
+  extraHours?: string;
+  workSummaryNote?: string;
+  workSummary?: string;
+  status?: string;
+}
 
 const formatTime = (value?: string | null) => {
   if (!value) return "--";
@@ -29,18 +72,26 @@ const formatTime = (value?: string | null) => {
 
 export default function AdminDailyAttendancePage() {
   // Navigation & Filter State
-  const [selectedDate, setSelectedDate] = useState(
+  const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().slice(0, 10),
   );
-  const [records, setRecords] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [records, setRecords] = useState<DailyAttendanceRecord[]>([]);
+  const [selectedRecordForNote, setSelectedRecordForNote] =
+    useState<DailyAttendanceRecord | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [search, setSearch] = useState<string>("");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 8;
+
+  const changeDate = (days: number) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + days);
+    setSelectedDate(d.toISOString().slice(0, 10));
+  };
 
   useEffect(() => {
     const loadAttendance = async () => {
@@ -55,18 +106,29 @@ export default function AdminDailyAttendancePage() {
           },
         });
         const employeeResponse = await api.get("/employees");
-        const employees = (employeeResponse.data as any) || [];
-        const attendance = (response.data as any)?.attendance || [];
+        const employees =
+          (employeeResponse.data as EmployeeResponseItem[]) || [];
+        const attendance =
+          ((response.data as { attendance?: AttendanceResponseItem[] })
+            ?.attendance || []) as AttendanceResponseItem[];
         setRecords(
-          attendance.map((record: any) => {
+          attendance.map((record): DailyAttendanceRecord => {
             const employee = employees.find(
-              (item: any) =>
+              (item) =>
                 item.id === record.employeeId ||
                 item.name === record.employeeName,
             );
             return {
-              ...record,
+              id: record.id,
+              employeeId: record.employeeId,
+              employeeName: record.employeeName || "Employee",
               department: record.department || employee?.department,
+              date: record.date || selectedDate,
+              checkIn: record.checkIn || null,
+              checkOut: record.checkOut || null,
+              workHours: record.workHours,
+              extraHours: record.extraHours,
+              workSummaryNote: record.workSummaryNote || record.workSummary,
               status:
                 record.status === "PRESENT"
                   ? "Present"
@@ -87,12 +149,14 @@ export default function AdminDailyAttendancePage() {
     void loadAttendance();
   }, [selectedDate, search, statusFilter, departmentFilter]);
 
-  // Filter records by date, search, department, and status
+  // Filter records by search, department, and status
   const filteredRecords = records.filter((rec) => {
     const matchesSearch =
       rec.employeeName.toLowerCase().includes(search.toLowerCase()) ||
       (rec.department &&
-        rec.department.toLowerCase().includes(search.toLowerCase()));
+        rec.department.toLowerCase().includes(search.toLowerCase())) ||
+      (rec.workSummaryNote &&
+        rec.workSummaryNote.toLowerCase().includes(search.toLowerCase()));
     const matchesDept =
       departmentFilter === "all" || rec.department === departmentFilter;
     const matchesStatus =
@@ -181,15 +245,16 @@ export default function AdminDailyAttendancePage() {
           </div>
         </div>
 
-        {/* Toolbar Controls (Matching Wireframe 1 input_file_0.png) */}
+        {/* Toolbar Controls */}
         <div className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-2xs">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            {/* Navigation: [<] [>] [Date v] [Day] */}
+            {/* Navigation controls */}
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="flex items-center gap-1">
                 <Button
                   size="icon"
                   variant="outline"
+                  onClick={() => changeDate(-1)}
                   className="h-9 w-9 cursor-pointer text-foreground"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -197,6 +262,7 @@ export default function AdminDailyAttendancePage() {
                 <Button
                   size="icon"
                   variant="outline"
+                  onClick={() => changeDate(1)}
                   className="h-9 w-9 cursor-pointer text-foreground"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -212,8 +278,10 @@ export default function AdminDailyAttendancePage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-                className="h-9 text-xs font-bold px-3 hover:bg-accent/10 hover:text-accent"
+                onClick={() =>
+                  setSelectedDate(new Date().toISOString().split("T")[0])
+                }
+                className="h-9 text-xs font-bold px-3 hover:bg-accent/10 hover:text-accent cursor-pointer"
               >
                 Today
               </Button>
@@ -314,7 +382,7 @@ export default function AdminDailyAttendancePage() {
                       key={rec.id}
                       className="hover:bg-muted/30 transition-colors"
                     >
-                      {/* Emp Column */}
+                      {/* Employee Column */}
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
@@ -331,15 +399,17 @@ export default function AdminDailyAttendancePage() {
                         </div>
                       </td>
 
-                      {/* Check In */}
+                      {/* Date Column */}
                       <td className="p-4 font-mono font-bold text-foreground">
-                        {formatTime(rec.checkIn)}
+                        {rec.date}
                       </td>
 
-                      {/* Check Out */}
+                      {/* Check In / Out Column */}
                       <td className="p-4 font-mono font-bold text-foreground">
+                        <span>{formatTime(rec.checkIn)}</span>
+                        <span className="mx-1 text-muted-foreground">/</span>
                         {rec.checkOut ? (
-                          formatTime(rec.checkOut)
+                          <span>{formatTime(rec.checkOut)}</span>
                         ) : (
                           <span className="text-emerald-600 dark:text-emerald-400 font-semibold animate-pulse">
                             Active (In Shift)
@@ -347,14 +417,30 @@ export default function AdminDailyAttendancePage() {
                         )}
                       </td>
 
-                      {/* Work Hours */}
+                      {/* Worked Hours */}
                       <td className="p-4 font-mono font-bold text-accent">
                         {rec.workHours || "08:30"}
                       </td>
 
-                      {/* Extra Hours */}
-                      <td className="p-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {rec.extraHours || "00:00"}
+                      {/* Daily Work Summary Note */}
+                      <td className="p-4">
+                        {rec.workSummaryNote ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedRecordForNote(rec)}
+                            className="h-7 px-2.5 text-[11px] font-semibold text-accent hover:bg-accent/15 border-accent/30 gap-1.5 cursor-pointer"
+                          >
+                            <FileText className="h-3.5 w-3.5 shrink-0" />
+                            <span className="max-w-[140px] truncate">
+                              {rec.workSummaryNote}
+                            </span>
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground text-[11px] italic">
+                            No note provided
+                          </span>
+                        )}
                       </td>
 
                       {/* Status */}
@@ -372,7 +458,17 @@ export default function AdminDailyAttendancePage() {
                         )}
                         {rec.status === "On Leave" && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-500 border border-blue-500/30">
-                            {rec.status}
+                            On Leave
+                          </span>
+                        )}
+                        {rec.status === "Absent" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-destructive/15 text-destructive border border-destructive/30">
+                            Absent
+                          </span>
+                        )}
+                        {rec.status === "Half Day" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-500 border border-purple-500/30">
+                            Half Day
                           </span>
                         )}
                       </td>
@@ -410,7 +506,9 @@ export default function AdminDailyAttendancePage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 disabled={currentPage === totalPages}
                 className="h-8 text-xs gap-1 cursor-pointer"
               >
@@ -423,19 +521,27 @@ export default function AdminDailyAttendancePage() {
 
       {/* Admin View Work Summary Note Full Dialog */}
       {selectedRecordForNote && (
-        <Dialog open={!!selectedRecordForNote} onOpenChange={() => setSelectedRecordForNote(null)}>
+        <Dialog
+          open={!!selectedRecordForNote}
+          onOpenChange={(open) => {
+            if (!open) setSelectedRecordForNote(null);
+          }}
+        >
           <DialogContent className="sm:max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl">
             <DialogHeader className="space-y-2 border-b border-border pb-3">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-2xl bg-accent/20 text-accent flex items-center justify-center font-bold text-base">
-                  {selectedRecordForNote.employeeName.substring(0, 2).toUpperCase()}
+                  {selectedRecordForNote.employeeName
+                    .substring(0, 2)
+                    .toUpperCase()}
                 </div>
                 <div>
                   <DialogTitle className="text-base font-extrabold text-foreground">
                     {selectedRecordForNote.employeeName}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground">
-                    {selectedRecordForNote.department || 'Department'} • {selectedRecordForNote.date}
+                    {selectedRecordForNote.department || "Department"} •{" "}
+                    {selectedRecordForNote.date}
                   </DialogDescription>
                 </div>
               </div>
@@ -444,16 +550,30 @@ export default function AdminDailyAttendancePage() {
             <div className="space-y-4 py-3 text-xs">
               <div className="grid grid-cols-3 gap-2 bg-muted/40 p-3 rounded-2xl border border-border/80 text-center font-mono">
                 <div>
-                  <span className="text-[10px] text-muted-foreground block">Check-In</span>
-                  <span className="font-bold text-accent">{selectedRecordForNote.checkIn}</span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    Check-In
+                  </span>
+                  <span className="font-bold text-accent">
+                    {formatTime(selectedRecordForNote.checkIn)}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block">Check-Out</span>
-                  <span className="font-bold text-foreground">{selectedRecordForNote.checkOut || 'In Shift'}</span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    Check-Out
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {selectedRecordForNote.checkOut
+                      ? formatTime(selectedRecordForNote.checkOut)
+                      : "In Shift"}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block">Work Hours</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{selectedRecordForNote.workHours || '08:30'}</span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    Work Hours
+                  </span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {selectedRecordForNote.workHours || "08:30"}
+                  </span>
                 </div>
               </div>
 
@@ -463,7 +583,8 @@ export default function AdminDailyAttendancePage() {
                   Work Summary & Daily Deliverables Note
                 </Label>
                 <div className="bg-muted/30 p-4 rounded-2xl border border-border text-foreground leading-relaxed whitespace-pre-wrap font-medium">
-                  {selectedRecordForNote.workSummaryNote}
+                  {selectedRecordForNote.workSummaryNote ||
+                    "No work summary note provided for this shift."}
                 </div>
               </div>
             </div>
