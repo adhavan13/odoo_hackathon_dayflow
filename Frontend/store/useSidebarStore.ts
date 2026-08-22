@@ -15,7 +15,7 @@ interface SidebarState {
 export const useSidebarStore = create<SidebarState>((set) => ({
   isCollapsed: false,
   isMobileOpen: false,
-  openGroups: ['Dashboard', 'Employee Management', 'Attendance', 'Leave Management', 'Payroll & Salary', 'My Profile', 'Leave & Time-Off'],
+  openGroups: ['Dashboard', 'Attendance', 'Leave Management', 'Payroll & Salary', 'My Profile', 'Leave & Time-Off'],
 
   toggleCollapse: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
   setCollapsed: (isCollapsed) => set({ isCollapsed }),

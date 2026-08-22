@@ -16,6 +16,38 @@ export interface UserProfile {
   employeeId?: string;
   companyId?: string;
   companyName?: string;
+  phone?: string;
+  mobile?: string;
+  manager?: string;
+  location?: string;
+  about?: string;
+  whatILove?: string;
+  interests?: string;
+  skills?: string[];
+  certifications?: string[];
+  dob?: string;
+  residingAddress?: string;
+  address?: string;
+  nationality?: string;
+  personalEmail?: string;
+  gender?: string;
+  maritalStatus?: string;
+  dateOfJoining?: string;
+  joinDate?: string;
+  bankAccountNo?: string;
+  bankName?: string;
+  ifscCode?: string;
+  panNo?: string;
+  uanNo?: string;
+  empCode?: string;
+  bankDetails?: {
+    accountNumber?: string;
+    bankName?: string;
+    ifscCode?: string;
+    panNo?: string;
+    uanNo?: string;
+  };
+  [key: string]: any;
 }
 
 export interface SignupResult {
@@ -112,37 +144,74 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (typeof window !== 'undefined') {
       localStorage.setItem('auth_token', token);
       localStorage.setItem('auth_user', JSON.stringify(user));
+      window.dispatchEvent(new Event('auth_user_updated'));
     }
     set({ user, token, role: user.role, isAuthenticated: true });
   },
 
   switchRole: (role) => {
     const newUser = role === 'admin' ? mockAdminUser : mockEmployeeUser;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_user', JSON.stringify(newUser));
+      window.dispatchEvent(new Event('auth_user_updated'));
+    }
     set({ role, user: newUser });
   },
 
   checkAuthMe: async () => {
     if (typeof window === 'undefined') return;
     const storedToken = localStorage.getItem('auth_token');
+    const storedUserRaw = localStorage.getItem('auth_user');
+    let existingUser: UserProfile | null = null;
+    if (storedUserRaw) {
+      try {
+        existingUser = JSON.parse(storedUserRaw);
+      } catch {
+        existingUser = null;
+      }
+    }
+
     if (!storedToken) return;
 
     try {
       const response = await api.get('/auth/me');
       const rawUser = response.data?.user || response.data;
-      if (rawUser && rawUser.email) {
-        const logoUrl = rawUser.logo || rawUser.avatarUrl || '/logo.png';
+      if (rawUser && (rawUser.email || rawUser.id)) {
+        const logoUrl =
+          rawUser.avatarUrl ||
+          rawUser.profileImage ||
+          rawUser.avatar ||
+          rawUser.logo ||
+          existingUser?.avatarUrl ||
+          '/user.png';
+        const userRole = normalizeRole(rawUser.role || existingUser?.role);
         const mappedUser: UserProfile = {
-          id: rawUser.id || rawUser._id || 'usr_01',
-          name: rawUser.name || rawUser.email.split('@')[0],
-          email: rawUser.email,
-          role: normalizeRole(rawUser.role),
+          ...existingUser,
+          ...rawUser,
+          id: rawUser.id || rawUser._id || existingUser?.id || `usr_${Date.now()}`,
+          name: rawUser.name || existingUser?.name || rawUser.email?.split('@')[0] || 'User',
+          email: rawUser.email || existingUser?.email || '',
+          role: userRole,
           avatarUrl: logoUrl,
           logo: logoUrl,
-          department: rawUser.department || (normalizeRole(rawUser.role) === 'admin' ? 'Human Resources' : 'Software Engineering'),
-          designation: rawUser.designation || (normalizeRole(rawUser.role) === 'admin' ? 'HR Officer / Admin' : 'Senior Developer'),
-          employeeId: rawUser.employeeId,
-          companyId: rawUser.companyId,
-          companyName: rawUser.companyName || rawUser.company?.name,
+          department:
+            rawUser.department ||
+            existingUser?.department ||
+            (userRole === 'admin' ? 'Human Resources' : 'Software Engineering'),
+          designation:
+            rawUser.designation ||
+            existingUser?.designation ||
+            (userRole === 'admin' ? 'HR Officer / Admin' : 'Senior Developer'),
+          employeeId:
+            rawUser.employeeId ||
+            rawUser.empCode ||
+            rawUser.code ||
+            existingUser?.employeeId ||
+            (userRole === 'admin' ? 'EMP1002' : 'EMP1001'),
+          companyId: rawUser.companyId || existingUser?.companyId,
+          companyName: rawUser.companyName || rawUser.company?.name || existingUser?.companyName || 'Dayflow HRMS',
+          phone: rawUser.phone || rawUser.mobile || existingUser?.phone || existingUser?.mobile,
+          mobile: rawUser.mobile || rawUser.phone || existingUser?.mobile || existingUser?.phone,
         };
         get().setAuth(mappedUser, storedToken);
       }
@@ -163,19 +232,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Invalid response structure from backend.');
       }
 
-      const logoUrl = rawUser.logo || rawUser.avatarUrl || '/logo.png';
+      const logoUrl =
+        rawUser.avatarUrl ||
+        rawUser.profileImage ||
+        rawUser.avatar ||
+        rawUser.logo ||
+        '/user.png';
+      const userRole = normalizeRole(rawUser.role);
       const mappedUser: UserProfile = {
+        ...rawUser,
         id: rawUser.id || rawUser._id || `usr_${Date.now()}`,
         name: rawUser.name || email.split('@')[0],
-        email: rawUser.email,
-        role: normalizeRole(rawUser.role),
+        email: rawUser.email || email,
+        role: userRole,
         avatarUrl: logoUrl,
         logo: logoUrl,
-        department: rawUser.department || (normalizeRole(rawUser.role) === 'admin' ? 'Human Resources' : 'Software Engineering'),
-        designation: rawUser.designation || (normalizeRole(rawUser.role) === 'admin' ? 'HR Officer / Admin' : 'Senior Developer'),
-        employeeId: rawUser.employeeId,
+        department:
+          rawUser.department || (userRole === 'admin' ? 'Human Resources' : 'Software Engineering'),
+        designation:
+          rawUser.designation || (userRole === 'admin' ? 'HR Officer / Admin' : 'Senior Developer'),
+        employeeId:
+          rawUser.employeeId || rawUser.empCode || rawUser.code || (userRole === 'admin' ? 'EMP1002' : 'EMP1001'),
         companyId: rawUser.companyId,
-        companyName: rawUser.companyName || rawUser.company?.name,
+        companyName: rawUser.companyName || rawUser.company?.name || 'Dayflow HRMS',
+        phone: rawUser.phone || rawUser.mobile,
+        mobile: rawUser.mobile || rawUser.phone,
       };
 
       get().setAuth(mappedUser, token);
@@ -198,7 +279,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const rawUser = resData.user;
       const token = resData.accessToken;
 
-      const logoUrl = signupData.logo || '/logo.png';
+      const logoUrl = signupData.logo || '/user.png';
       const mappedUser: UserProfile = {
         id: rawUser?.id || `usr_${Date.now()}`,
         name: signupData.name,
@@ -208,9 +289,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         logo: logoUrl,
         department: 'Executive Board / Admin',
         designation: 'Company Founder / HR Admin',
+        employeeId: rawUser?.employeeId || rawUser?.empCode || 'EMP1002',
         companyId: resData.company?.id,
-        companyName: signupData.companyName || resData.company?.name,
+        companyName: signupData.companyName || resData.company?.name || 'Dayflow HRMS',
+        phone: signupData.phone,
       };
+
+      if (token) {
+        get().setAuth(mappedUser, token);
+      } else {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('auth_user', JSON.stringify(mappedUser));
+          window.dispatchEvent(new Event('auth_user_updated'));
+        }
+      }
 
       snackbar.success(`Organization "${signupData.companyName}" registered! Verification OTP sent to email.`);
       
@@ -251,23 +343,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const rawUser = resData.user;
       const token = resData.accessToken;
 
-      if (rawUser && token) {
-        const logoUrl = rawUser.logo || rawUser.avatarUrl || '/logo.png';
-        const mappedUser: UserProfile = {
-          id: rawUser.id || rawUser._id || `usr_${Date.now()}`,
-          name: rawUser.name || email.split('@')[0],
-          email: rawUser.email,
-          role: 'admin',
-          avatarUrl: logoUrl,
-          logo: logoUrl,
-          department: 'Executive Board / Admin',
-          designation: 'Company Founder / HR Admin',
-          companyId: resData.company?.id,
-          companyName: resData.company?.name,
-        };
-
-        get().setAuth(mappedUser, token);
+      let storedSignupUser: UserProfile | null = null;
+      if (typeof window !== 'undefined') {
+        const rawStored = localStorage.getItem('auth_user');
+        if (rawStored) {
+          try { storedSignupUser = JSON.parse(rawStored); } catch {}
+        }
       }
+
+      const logoUrl = rawUser?.avatarUrl || rawUser?.logo || storedSignupUser?.avatarUrl || '/user.png';
+      const mappedUser: UserProfile = {
+        ...storedSignupUser,
+        ...rawUser,
+        id: rawUser?.id || rawUser?._id || storedSignupUser?.id || `usr_${Date.now()}`,
+        name: rawUser?.name || storedSignupUser?.name || email.split('@')[0],
+        email: rawUser?.email || storedSignupUser?.email || email,
+        role: 'admin',
+        avatarUrl: logoUrl,
+        logo: logoUrl,
+        department: rawUser?.department || storedSignupUser?.department || 'Executive Board / Admin',
+        designation: rawUser?.designation || storedSignupUser?.designation || 'Company Founder / HR Admin',
+        employeeId: rawUser?.employeeId || rawUser?.empCode || storedSignupUser?.employeeId || 'EMP1002',
+        companyId: resData.company?.id || storedSignupUser?.companyId,
+        companyName: resData.company?.name || storedSignupUser?.companyName || 'Dayflow HRMS',
+        phone: rawUser?.phone || storedSignupUser?.phone,
+      };
+
+      const finalToken = token || localStorage.getItem('auth_token') || 'verified_token';
+      get().setAuth(mappedUser, finalToken);
 
       snackbar.success('Email verified successfully! Organization registered in database.');
       return true;
@@ -287,6 +390,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     if (typeof window !== 'undefined') {
       localStorage.clear();
+      window.dispatchEvent(new Event('auth_user_updated'));
     }
     set({ user: null, role: 'admin', token: null, isAuthenticated: false });
   },

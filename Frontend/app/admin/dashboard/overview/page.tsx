@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageContainer } from '@/components/ui/page-container';
 import { useEmployeeStore, Employee } from '@/store';
 import { UserProfileView } from '@/components/profile/UserProfileView';
@@ -14,16 +14,14 @@ import {
   UserCheck,
   LayoutGrid,
   List,
-  X,
-  KeyRound,
-  Copy,
+  ArrowUpDown,
+  Filter,
   Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
-import { DatePicker } from '@/components/ui/date-picker';
 import {
   Dialog,
   DialogContent,
@@ -32,11 +30,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DatePicker } from '@/components/ui/date-picker';
 
 export default function AdminOverviewPage() {
-  const { employees, addEmployee } = useEmployeeStore();
+  const { employees, fetchEmployees, addEmployee } = useEmployeeStore();
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Fetch live backend employees on page mount
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
 
   // Selected Employee for View-Only Modal
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
@@ -121,18 +125,50 @@ export default function AdminOverviewPage() {
     return emp.status === 'On Leave' ? 'On Leave' : 'Present';
   };
 
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      emp.name.toLowerCase().includes(search.toLowerCase()) ||
-      emp.loginId?.toLowerCase().includes(search.toLowerCase()) ||
-      emp.department.toLowerCase().includes(search.toLowerCase()) ||
-      emp.designation.toLowerCase().includes(search.toLowerCase())
-  );
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [deptFilter, setDeptFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'loginId' | 'dept' | 'newest' | 'oldest'>('name-asc');
+
+  const filteredEmployees = employees
+    .filter((emp) => {
+      const currentStatus = getEmployeeStatus(emp);
+
+      const matchesSearch =
+        emp.name.toLowerCase().includes(search.toLowerCase()) ||
+        emp.email?.toLowerCase().includes(search.toLowerCase()) ||
+        emp.loginId?.toLowerCase().includes(search.toLowerCase()) ||
+        emp.department.toLowerCase().includes(search.toLowerCase()) ||
+        emp.designation.toLowerCase().includes(search.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === 'all'
+          ? true
+          : statusFilter === 'present'
+          ? currentStatus === 'Present'
+          : statusFilter === 'on-leave'
+          ? currentStatus === 'On Leave'
+          : statusFilter === 'absent'
+          ? currentStatus === 'Absent'
+          : true;
+
+      const matchesDept = deptFilter === 'all' ? true : emp.department === deptFilter;
+
+      return matchesSearch && matchesStatus && matchesDept;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+      if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+      if (sortBy === 'loginId') return (a.loginId || '').localeCompare(b.loginId || '');
+      if (sortBy === 'dept') return a.department.localeCompare(b.department);
+      if (sortBy === 'newest') return new Date(b.joinDate || 0).getTime() - new Date(a.joinDate || 0).getTime();
+      if (sortBy === 'oldest') return new Date(a.joinDate || 0).getTime() - new Date(b.joinDate || 0).getTime();
+      return 0;
+    });
 
   return (
     <PageContainer
       title="Employees"
-      subtitle="Workforce directory and real-time attendance status indicators"
+      subtitle="Workforce directory, admin-created employees, and real-time attendance status indicators"
       badge="Admin"
       action={
         <div className="flex items-center gap-2">
@@ -170,21 +206,90 @@ export default function AdminOverviewPage() {
       }
     >
       <div className="space-y-6">
-        {/* Top Search Filter */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search employee name, Login ID (e.g. OIJODO20220001)..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-10 text-xs bg-muted/20"
-            />
+        {/* Top Search, Sort & Status Filter Toolbar */}
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-2xs space-y-4">
+          {/* Row 1: Search Bar & Sorting Controls */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search employee name, Login ID (e.g. OIJODO20220001)..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9 text-xs bg-muted/20"
+              />
+            </div>
+
+            {/* Sorting Dropdown & Result Count */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-xs">
+                <ArrowUpDown className="h-3.5 w-3.5 text-accent shrink-0" />
+                <CustomSelect
+                  value={sortBy}
+                  onChange={(val) => setSortBy(val as any)}
+                  options={[
+                    { value: 'name-asc', label: 'Sort: Name (A - Z)' },
+                    { value: 'name-desc', label: 'Sort: Name (Z - A)' },
+                    { value: 'loginId', label: 'Sort: Login ID' },
+                    { value: 'dept', label: 'Sort: Department' },
+                    { value: 'newest', label: 'Sort: Join Date (Newest)' },
+                    { value: 'oldest', label: 'Sort: Join Date (Oldest)' },
+                  ]}
+                  className="w-48 h-9 text-xs"
+                />
+              </div>
+
+              <span className="text-xs text-muted-foreground font-mono font-bold shrink-0 hidden md:inline">
+                {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
-          <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
-            Showing {filteredEmployees.length} employees
-          </span>
+
+          {/* Row 2: Status Pills & Department Dropdown */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/60">
+            {/* Status Filter Pills */}
+            <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border text-xs">
+              {[
+                { id: 'all', label: 'All Status' },
+                { id: 'present', label: 'Present' },
+                { id: 'on-leave', label: 'On Leave' },
+                { id: 'absent', label: 'Absent' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    statusFilter === tab.id
+                      ? 'bg-card text-accent shadow-xs border border-accent/20'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Department Dropdown */}
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+              <CustomSelect
+                value={deptFilter}
+                onChange={setDeptFilter}
+                options={[
+                  { value: 'all', label: 'All Departments' },
+                  { value: 'Software Engineering', label: 'Software Engineering' },
+                  { value: 'Human Resources', label: 'Human Resources' },
+                  { value: 'Sales', label: 'Sales' },
+                  { value: 'Product', label: 'Product' },
+                  { value: 'Marketing', label: 'Marketing' },
+                ]}
+                className="w-48 h-9 text-xs"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Employee Cards Grid View (Matching Wireframe 1) */}
@@ -325,24 +430,25 @@ export default function AdminOverviewPage() {
       {/* Modal 1: Clickable Card View-Only Employee Profile Dialog */}
       {viewingEmployee && (
         <Dialog open={!!viewingEmployee} onOpenChange={() => setViewingEmployee(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="flex items-center justify-between border-b border-border pb-3">
+          <DialogContent className="sm:max-w-5xl w-full max-w-[96vw] max-h-[92vh] overflow-y-auto rounded-3xl border border-border bg-card p-6 md:p-8 shadow-2xl">
+            <DialogHeader className="flex items-center justify-between border-b border-border pb-4">
               <div>
-                <DialogTitle className="text-lg font-bold text-foreground">
+                <DialogTitle className="text-xl font-extrabold text-foreground flex items-center gap-2">
+                  <UserCheck className="h-5 w-5 text-accent" />
                   Employee Profile Information (View-Only Mode)
                 </DialogTitle>
-                <DialogDescription className="text-xs">
-                  Viewing detailed information for <strong>{viewingEmployee.name}</strong> ({viewingEmployee.loginId})
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Viewing detailed information for <strong className="text-foreground">{viewingEmployee.name}</strong> (<span className="font-mono text-accent">{viewingEmployee.loginId || viewingEmployee.employeeId}</span>)
                 </DialogDescription>
               </div>
             </DialogHeader>
 
-            <div className="py-2">
+            <div className="py-4">
               <UserProfileView isAdminView={true} employeeData={viewingEmployee} isReadOnly={true} />
             </div>
 
-            <DialogFooter className="border-t border-border pt-3">
-              <Button onClick={() => setViewingEmployee(null)} className="bg-accent text-accent-foreground text-xs font-bold">
+            <DialogFooter className="border-t border-border pt-4">
+              <Button onClick={() => setViewingEmployee(null)} className="bg-accent text-accent-foreground text-xs font-bold px-6 cursor-pointer">
                 Close Profile
               </Button>
             </DialogFooter>

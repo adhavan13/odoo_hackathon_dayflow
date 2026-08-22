@@ -2,16 +2,16 @@
 
 import React from 'react';
 import { PageContainer } from '@/components/ui/page-container';
-import { TimeOffView } from '@/components/leave/TimeOffView';
+import { AdminLeaveScheduleView } from '@/components/leave/AdminLeaveScheduleView';
 
 export default function AdminLeaveCalendarPage() {
   return (
     <PageContainer
-      title="Workforce Time Off Calendar"
-      subtitle="Full 12-month calendar matrix displaying approved, pending, and refused time off across all departments"
-      badge="Admin / HR"
+      title="Company Workforce Schedule & Allocations"
+      subtitle="Workforce absence coverage calendar, annual leave quota usage per employee, and public holiday schedule"
+      badge="Admin / HR Schedule"
     >
-      <TimeOffView forcedRole="admin" />
+      <AdminLeaveScheduleView />
     </PageContainer>
   );
 }

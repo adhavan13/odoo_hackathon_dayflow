@@ -47,15 +47,6 @@ const adminNavConfig: NavGroup[] = [
     ],
   },
   {
-    title: 'Employee Management',
-    icon: Users,
-    items: [
-      { title: 'All Employees', href: '/admin/employee-management/all-employees' },
-      { title: 'Employee Profiles', href: '/admin/employee-management/employee-profiles' },
-      { title: 'Departments', href: '/admin/employee-management/departments' },
-    ],
-  },
-  {
     title: 'Attendance',
     icon: Clock,
     items: [
@@ -68,9 +59,8 @@ const adminNavConfig: NavGroup[] = [
     title: 'Leave Management',
     icon: CalendarDays,
     items: [
-      { title: 'Leave Requests', href: '/admin/leave-management/requests' },
-      { title: 'Leave Calendar', href: '/admin/leave-management/calendar' },
-      { title: 'Leave Reports', href: '/admin/leave-management/reports' },
+      { title: 'Leave Requests & Approvals', href: '/admin/leave-management' },
+      { title: 'Leave Calendar & Schedule', href: '/admin/leave-management/calendar' },
     ],
   },
   {
@@ -95,7 +85,6 @@ const adminNavConfig: NavGroup[] = [
     title: 'Notifications',
     icon: Bell,
     items: [
-      { title: 'Alerts', href: '/admin/notifications/alerts' },
       { title: 'Announcements', href: '/admin/notifications/announcements' },
     ],
   },
@@ -124,8 +113,6 @@ const employeeNavConfig: NavGroup[] = [
     icon: User,
     items: [
       { title: 'Personal Information', href: '/employee/profile/personal-info' },
-      { title: 'Job Details', href: '/employee/profile/job-details' },
-      { title: 'Documents', href: '/employee/profile/documents' },
     ],
   },
   {
@@ -141,10 +128,8 @@ const employeeNavConfig: NavGroup[] = [
     title: 'Leave & Time-Off',
     icon: CalendarDays,
     items: [
-      { title: 'Apply for Leave', href: '/employee/leave/apply' },
-      { title: 'My Leave Requests', href: '/employee/leave/requests' },
-      { title: 'Leave Balance', href: '/employee/leave/balance' },
-      { title: 'Leave Calendar', href: '/employee/leave/calendar' },
+      { title: 'My Time Off & Requests', href: '/employee/leave' },
+      { title: 'Leave Calendar & Holidays', href: '/employee/leave/calendar' },
     ],
   },
   {
@@ -160,7 +145,6 @@ const employeeNavConfig: NavGroup[] = [
     title: 'Notifications',
     icon: Bell,
     items: [
-      { title: 'Alerts', href: '/employee/notifications/alerts' },
       { title: 'Announcements', href: '/employee/notifications/announcements' },
     ],
   },

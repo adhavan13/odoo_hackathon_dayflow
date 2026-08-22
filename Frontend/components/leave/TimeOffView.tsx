@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -19,6 +19,9 @@ import {
   ListFilter,
   Sparkles,
   Paperclip,
+  Palmtree,
+  Stethoscope,
+  CalendarX,
 } from 'lucide-react';
 import { useAuthStore, useEmployeeStore } from '@/store';
 import { useLeaveStore, LeaveRequest, PUBLIC_HOLIDAYS_2026 } from '@/store/useLeaveStore';
@@ -40,12 +43,18 @@ import {
 
 interface TimeOffViewProps {
   forcedRole?: 'admin' | 'employee';
+  defaultViewMode?: 'calendar' | 'table';
 }
 
-export function TimeOffView({ forcedRole }: TimeOffViewProps) {
+export function TimeOffView({ forcedRole, defaultViewMode }: TimeOffViewProps) {
   const { user, role: storeRole } = useAuthStore();
   const { employees } = useEmployeeStore();
-  const { leaves, applyLeave, updateLeaveStatus } = useLeaveStore();
+  const { leaves, fetchLeaves, applyLeave, updateLeaveStatus } = useLeaveStore();
+
+  // Fetch leaves from backend on mount
+  useEffect(() => {
+    fetchLeaves();
+  }, [fetchLeaves]);
 
   const currentRole = forcedRole || storeRole;
   const isAdmin = currentRole === 'admin';
@@ -53,12 +62,15 @@ export function TimeOffView({ forcedRole }: TimeOffViewProps) {
   // Sub-bar tab: 'timeoff' | 'allocation'
   const [activeTab, setActiveTab] = useState<'timeoff' | 'allocation'>('timeoff');
 
-  // View Mode: 'calendar' | 'table' (Defaults to calendar for employee, table for admin as per wireframe)
-  const [viewMode, setViewMode] = useState<'calendar' | 'table'>(isAdmin ? 'table' : 'calendar');
+  // View Mode: 'calendar' | 'table'
+  const [viewMode, setViewMode] = useState<'calendar' | 'table'>(
+    defaultViewMode || (isAdmin ? 'table' : 'calendar')
+  );
 
-  // Search filter
+  // Search and filter states
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
 
   // Modal State for NEW Time Off Request
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -132,15 +144,23 @@ export function TimeOffView({ forcedRole }: TimeOffViewProps) {
   // Admins & HR Officers view all employees' time off records.
   const userLeaves = isAdmin
     ? leaves
-    : leaves.filter((l) => l.employeeId === (user?.id || 'usr_emp_02') || l.employeeName === user?.name || l.employeeName === 'Alex Rivera');
+    : leaves.filter(
+        (l) =>
+          l.employeeId === (user?.id || 'usr_emp_02') ||
+          l.employeeId === user?.employeeId ||
+          l.employeeName === user?.name ||
+          l.employeeName === 'Alex Rivera'
+      );
 
   const filteredLeaves = userLeaves.filter((l) => {
     const matchesSearch =
       l.employeeName.toLowerCase().includes(search.toLowerCase()) ||
       l.leaveType.toLowerCase().includes(search.toLowerCase()) ||
+      (l.reason || '').toLowerCase().includes(search.toLowerCase()) ||
       l.status.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || l.status.toLowerCase() === statusFilter.toLowerCase();
-    return matchesSearch && matchesStatus;
+    const matchesType = typeFilter === 'all' || l.leaveType.toLowerCase() === typeFilter.toLowerCase();
+    return matchesSearch && matchesStatus && matchesType;
   });
 
   // Calculate Used & Remaining Balances
@@ -236,7 +256,7 @@ export function TimeOffView({ forcedRole }: TimeOffViewProps) {
 
       {/* Action Controls Bar: [NEW] Button, Searchbar, View Mode Toggles */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card p-4 rounded-2xl border border-border shadow-2xs">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto flex-1">
           {/* NEW Button (Purple / Accent) */}
           <Button
             onClick={() => setIsModalOpen(true)}
@@ -247,14 +267,42 @@ export function TimeOffView({ forcedRole }: TimeOffViewProps) {
           </Button>
 
           {/* Searchbar */}
-          <div className="relative flex-1 sm:w-80">
+          <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Searchbar (employee, leave type, status...)"
+              placeholder="Searchbar (employee, leave type...)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-10 text-xs bg-muted/20 rounded-xl"
+            />
+          </div>
+
+          {/* Status Filter Dropdown */}
+          <div className="w-36">
+            <CustomSelect
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+              options={[
+                { label: 'All Statuses', value: 'all' },
+                { label: 'Pending', value: 'pending' },
+                { label: 'Approved', value: 'approved' },
+                { label: 'Rejected', value: 'rejected' },
+              ]}
+            />
+          </div>
+
+          {/* Leave Type Filter Dropdown */}
+          <div className="w-40">
+            <CustomSelect
+              value={typeFilter}
+              onValueChange={setTypeFilter}
+              options={[
+                { label: 'All Leave Types', value: 'all' },
+                { label: 'Paid Time off', value: 'Paid Time off' },
+                { label: 'Sick Leave', value: 'Sick Leave' },
+                { label: 'Unpaid Leaves', value: 'Unpaid Leaves' },
+              ]}
             />
           </div>
         </div>
@@ -286,25 +334,25 @@ export function TimeOffView({ forcedRole }: TimeOffViewProps) {
 
       {/* Available Days Summary Cards (Matching Wireframe 1 & 2) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-5 rounded-2xl border border-blue-500/30 bg-blue-500/5 dark:bg-blue-500/10 flex items-center justify-between shadow-2xs">
+        <div className="p-5 rounded-2xl border border-accent/30 bg-accent/5 dark:bg-accent/10 flex items-center justify-between shadow-2xs hover:border-accent/50 transition-all">
           <div>
-            <h3 className="text-sm font-extrabold text-blue-600 dark:text-blue-400">Paid time Off</h3>
+            <h3 className="text-sm font-extrabold text-accent">Paid time Off</h3>
             <p className="text-2xl font-black text-foreground mt-1">{String(availablePaidDays).padStart(2, '0')} Days Available</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Out of 24 allocated annual paid leave days</p>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-blue-500/20 text-blue-500 flex items-center justify-center font-bold text-lg">
-            🌴
+          <div className="h-12 w-12 rounded-2xl bg-accent/15 text-accent flex items-center justify-center shadow-xs border border-accent/20">
+            <Palmtree className="h-6 w-6 text-accent" />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 flex items-center justify-between shadow-2xs">
+        <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 flex items-center justify-between shadow-2xs hover:border-amber-500/50 transition-all">
           <div>
             <h3 className="text-sm font-extrabold text-amber-600 dark:text-amber-400">Sick time off</h3>
             <p className="text-2xl font-black text-foreground mt-1">{String(availableSickDays).padStart(2, '0')} Days Available</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Out of 07 allocated annual sick leave days</p>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold text-lg">
-            🩺
+          <div className="h-12 w-12 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center shadow-xs border border-amber-500/20">
+            <Stethoscope className="h-6 w-6 text-amber-500" />
           </div>
         </div>
       </div>
@@ -393,9 +441,30 @@ export function TimeOffView({ forcedRole }: TimeOffViewProps) {
 
                       {/* Time Off Type */}
                       <td className="p-4">
-                        <span className="font-medium text-accent bg-accent/10 px-2.5 py-1 rounded-lg border border-accent/20">
-                          {item.leaveType}
-                        </span>
+                        {item.leaveType === 'Paid Time off' && (
+                          <span className="inline-flex items-center gap-1.5 font-bold text-[11px] text-accent bg-accent/10 px-2.5 py-1 rounded-lg border border-accent/20">
+                            <Palmtree className="h-3.5 w-3.5" />
+                            Paid Time off
+                          </span>
+                        )}
+                        {item.leaveType === 'Sick Leave' && (
+                          <span className="inline-flex items-center gap-1.5 font-bold text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                            <Stethoscope className="h-3.5 w-3.5" />
+                            Sick Leave
+                          </span>
+                        )}
+                        {item.leaveType === 'Unpaid Leaves' && (
+                          <span className="inline-flex items-center gap-1.5 font-bold text-[11px] text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-500/20">
+                            <CalendarX className="h-3.5 w-3.5" />
+                            Unpaid Leaves
+                          </span>
+                        )}
+                        {item.leaveType !== 'Paid Time off' && item.leaveType !== 'Sick Leave' && item.leaveType !== 'Unpaid Leaves' && (
+                          <span className="inline-flex items-center gap-1.5 font-bold text-[11px] text-accent bg-accent/10 px-2.5 py-1 rounded-lg border border-accent/20">
+                            <Palmtree className="h-3.5 w-3.5" />
+                            {item.leaveType}
+                          </span>
+                        )}
                       </td>
 
                       {/* Status Badge */}
@@ -555,22 +624,30 @@ export function TimeOffView({ forcedRole }: TimeOffViewProps) {
 
               <div className="space-y-2.5 text-xs font-semibold">
                 <div className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 rounded-full bg-emerald-500 shadow-xs" />
+                  <span className="h-4 w-4 rounded-full bg-emerald-500 flex items-center justify-center shadow-xs">
+                    <CheckCircle2 className="h-3 w-3 text-white" />
+                  </span>
                   <span className="text-foreground">Validated / Approved</span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 rounded-full bg-amber-500 shadow-xs" />
+                  <span className="h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center shadow-xs">
+                    <Clock className="h-3 w-3 text-white" />
+                  </span>
                   <span className="text-foreground">To Approve (Pending)</span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 rounded-full bg-rose-500 shadow-xs" />
+                  <span className="h-4 w-4 rounded-full bg-rose-500 flex items-center justify-center shadow-xs">
+                    <XCircle className="h-3 w-3 text-white" />
+                  </span>
                   <span className="text-foreground">Refused / Rejected</span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 rounded-full bg-purple-500 shadow-xs" />
+                  <span className="h-4 w-4 rounded-full bg-purple-500 flex items-center justify-center shadow-xs">
+                    <Sparkles className="h-3 w-3 text-white" />
+                  </span>
                   <span className="text-foreground">Public Holidays</span>
                 </div>
               </div>
@@ -594,7 +671,8 @@ export function TimeOffView({ forcedRole }: TimeOffViewProps) {
                         {h.date.split('-').reverse().join('/')}
                       </p>
                     </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-500 text-white font-bold">
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-500 text-white font-bold inline-flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
                       Holiday
                     </span>
                   </div>

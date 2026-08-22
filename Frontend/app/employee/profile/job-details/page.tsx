@@ -1,11 +1,12 @@
-import { PageContainer } from '@/components/ui/page-container';
+'use client';
 
-export default function JobDetailsPage() {
-  return (
-    <PageContainer
-      title="Job Details"
-      subtitle="Employment designation, manager info, department, and work location"
-      badge="Job Info"
-    />
-  );
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function JobDetailsRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/employee/profile/personal-info');
+  }, [router]);
+  return null;
 }
