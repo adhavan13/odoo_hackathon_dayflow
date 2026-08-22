@@ -1,15 +1,14 @@
-import React from 'react';
-import { PageContainer } from '@/components/ui/page-container';
-import { UserProfileView } from '@/components/profile/UserProfileView';
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AdminSettingsProfilePage() {
-  return (
-    <PageContainer
-      title="Admin Profile Settings"
-      subtitle="Manage your personal profile, private info, and salary structure"
-      badge="Admin"
-    >
-      <UserProfileView isAdminView={true} />
-    </PageContainer>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/admin/settings/organization');
+  }, [router]);
+
+  return null;
 }

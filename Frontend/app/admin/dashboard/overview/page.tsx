@@ -229,7 +229,7 @@ export default function AdminOverviewPage() {
                 <ArrowUpDown className="h-3.5 w-3.5 text-accent shrink-0" />
                 <CustomSelect
                   value={sortBy}
-                  onChange={(val) => setSortBy(val as any)}
+                  onValueChange={(val) => setSortBy(val as any)}
                   options={[
                     { value: 'name-asc', label: 'Sort: Name (A - Z)' },
                     { value: 'name-desc', label: 'Sort: Name (Z - A)' },
@@ -278,7 +278,7 @@ export default function AdminOverviewPage() {
               <Filter className="h-3.5 w-3.5 text-muted-foreground" />
               <CustomSelect
                 value={deptFilter}
-                onChange={setDeptFilter}
+                onValueChange={setDeptFilter}
                 options={[
                   { value: 'all', label: 'All Departments' },
                   { value: 'Software Engineering', label: 'Software Engineering' },
@@ -439,7 +439,7 @@ export default function AdminOverviewPage() {
                   Employee Profile Information (View-Only Mode)
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  Viewing detailed information for <strong className="text-foreground">{viewingEmployee.name}</strong> (<span className="font-mono text-accent">{viewingEmployee.loginId || viewingEmployee.employeeId}</span>)
+                  Viewing detailed information for <strong className="text-foreground">{viewingEmployee.name}</strong> (<span className="font-mono text-accent">{viewingEmployee.loginId || viewingEmployee.id}</span>)
                 </DialogDescription>
               </div>
             </DialogHeader>

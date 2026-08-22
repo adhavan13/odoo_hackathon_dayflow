@@ -27,7 +27,7 @@ export class AiAssistantService {
   /**
    * RAG Vector / Collection Retrieval Engine
    */
-  private static async retrieveRagContext() {
+  private static async retrieveRagContext(localEmployees?: any[]) {
     const db = getDatabase();
     const today = new Date().toISOString().split('T')[0];
 
@@ -51,15 +51,31 @@ export class AiAssistantService {
       db.collection('salary_structures').find({}).toArray(),
     ]);
 
-    const employeeList = employees.map((e: any) => ({
+    let mergedEmployees = [...employees];
+    if (localEmployees && Array.isArray(localEmployees)) {
+      localEmployees.forEach((locEmp: any) => {
+        const exists = mergedEmployees.some(
+          (dbEmp: any) =>
+            dbEmp.id === locEmp.id ||
+            (dbEmp.email && dbEmp.email.toLowerCase() === locEmp.email?.toLowerCase()) ||
+            (dbEmp.loginId && dbEmp.loginId === locEmp.loginId)
+        );
+        if (!exists) {
+          mergedEmployees.push(locEmp);
+        }
+      });
+    }
+
+    const employeeList = mergedEmployees.map((e: any) => ({
       id: e.id,
-      code: e.employeeCode || e.id,
+      code: e.loginId || e.employeeCode || e.id,
+      loginId: e.loginId || e.employeeCode || e.id,
       name: e.name,
       email: e.email,
       role: e.role,
       department: e.department,
       designation: e.designation,
-      status: e.status,
+      status: e.status || 'Active',
       joinDate: e.joinDate,
       phone: e.phone,
     }));
@@ -72,7 +88,7 @@ export class AiAssistantService {
         companyName: companies[0]?.name || 'Dayflow HRMS',
       },
       workforceSummary: {
-        totalEmployees: employees.length,
+        totalEmployees: mergedEmployees.length,
         totalUsers: users.length,
         todayAttendanceCount: todayAttendance.length,
         presentToday: todayAttendance.filter((a: any) => a.status === 'present').length,
@@ -96,7 +112,7 @@ export class AiAssistantService {
   /**
    * Process query using RAG + Groq API with Anti-Hallucination rules
    */
-  static async processQuery(query: string, userId: string, role: string, userName?: string): Promise<ChatMessage> {
+  static async processQuery(query: string, userId: string, role: string, userName?: string, localEmployees?: any[]): Promise<ChatMessage> {
     const lowerQuery = query.toLowerCase();
     let category: ChatMessage['category'] = 'general';
 
@@ -125,7 +141,7 @@ export class AiAssistantService {
     let responseText = '';
 
     try {
-      const ragContext = await this.retrieveRagContext();
+      const ragContext = await this.retrieveRagContext(localEmployees);
 
       const systemPrompt = `You are Dayflow HR Assistant, the dedicated enterprise RAG assistant for Dayflow HRMS. You are assisting "${userName || 'User'}" (${role}).
 
@@ -179,7 +195,7 @@ STRICT RAG & ANTI-HALLUCINATION INSTRUCTIONS:
     }
 
     if (!responseText) {
-      responseText = await this.strictRagFallback(query);
+      responseText = await this.strictRagFallback(query, localEmployees);
     }
 
     const assistantMsg: ChatMessage = {
@@ -199,7 +215,7 @@ STRICT RAG & ANTI-HALLUCINATION INSTRUCTIONS:
   /**
    * Factual Fallback Engine
    */
-  private static async strictRagFallback(query: string): Promise<string> {
+  private static async strictRagFallback(query: string, localEmployees?: any[]): Promise<string> {
     const db = getDatabase();
     const lower = query.toLowerCase();
 
@@ -207,11 +223,20 @@ STRICT RAG & ANTI-HALLUCINATION INSTRUCTIONS:
       return "I am **Dayflow HR Assistant**, your enterprise HR Knowledge Base assistant for Dayflow HRMS.";
     }
 
-    const employees = await db.collection('employees').find({}).toArray();
-    if (lower.includes('employee') || lower.includes('how many')) {
-      return `There are **${employees.length} active employees** recorded in the database:\n\n` +
-        `| Code | Name | Department | Designation |\n|---|---|---|---|\n` +
-        employees.map((e: any) => `| \`${e.employeeCode || e.id}\` | ${e.name} | ${e.department} | ${e.designation} |`).join('\n');
+    const dbEmployees = await db.collection('employees').find({}).toArray();
+    let merged = [...dbEmployees];
+    if (localEmployees && Array.isArray(localEmployees)) {
+      localEmployees.forEach((locEmp: any) => {
+        if (!merged.some((e: any) => e.id === locEmp.id || (e.email && e.email === locEmp.email))) {
+          merged.push(locEmp);
+        }
+      });
+    }
+
+    if (lower.includes('employee') || lower.includes('how many') || lower.includes('who') || lower.includes('list')) {
+      return `There are **${merged.length} active employees** in the organization:\n\n` +
+        `| Login ID / Code | Name | Department | Designation |\n|---|---|---|---|\n` +
+        merged.map((e: any) => `| \`${e.loginId || e.employeeCode || e.id}\` | **${e.name}** | ${e.department} | ${e.designation} |`).join('\n');
     }
 
     return "I am Dayflow HR Assistant. I can help you search active employee profiles, attendance logs, leave applications, or salary slips.";

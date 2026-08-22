@@ -6,7 +6,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export const processQuery = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const { query } = req.body;
+  const { query, localEmployees } = req.body;
   if (!query || typeof query !== 'string') {
     throw new ApiError(400, 'Query string is required.');
   }
@@ -15,7 +15,7 @@ export const processQuery = asyncHandler(async (req: AuthenticatedRequest, res: 
   const role = req.user?.role || 'EMPLOYEE';
   const userName = req.user?.name || req.user?.email || 'User';
 
-  const assistantMessage = await AiAssistantService.processQuery(query, userId, role, userName);
+  const assistantMessage = await AiAssistantService.processQuery(query, userId, role, userName, localEmployees);
 
   return res.status(200).json(
     new ApiResponse(200, assistantMessage, 'AI Assistant query processed successfully')

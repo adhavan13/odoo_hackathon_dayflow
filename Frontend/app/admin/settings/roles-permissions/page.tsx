@@ -1,11 +1,14 @@
-import { PageContainer } from '@/components/ui/page-container';
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function RolesPermissionsPage() {
-  return (
-    <PageContainer
-      title="Role & Permissions"
-      subtitle="Access control policies, user roles, and module access permissions"
-      badge="Security"
-    />
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/admin/settings/organization');
+  }, [router]);
+
+  return null;
 }

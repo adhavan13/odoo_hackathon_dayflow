@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useEmployeeStore } from './useEmployeeStore';
 
 export interface ChatMessage {
   id: string;
@@ -91,13 +92,14 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
     }));
 
     try {
+      const localEmployees = useEmployeeStore.getState().employees;
       const res = await fetch(`${BACKEND_URL}/ai-assistant/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, localEmployees }),
       });
 
       if (res.ok) {

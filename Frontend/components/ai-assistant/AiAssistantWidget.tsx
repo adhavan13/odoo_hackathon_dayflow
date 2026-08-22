@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAiAssistantStore } from '@/store/useAiAssistantStore';
@@ -17,6 +18,7 @@ import {
   CreditCard,
   Users,
   Search,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -44,8 +46,13 @@ export function AiAssistantWidget() {
     clearHistory,
   } = useAiAssistantStore();
 
-  const { user } = useAuthStore();
+  const pathname = usePathname();
+  const { user, role } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+
+  const isEmployee = pathname?.startsWith('/employee') || user?.role === 'employee' || role === 'employee';
+  const assistantTitle = isEmployee ? 'User Assistant' : 'HR Assistant';
+  const assistantSubtitle = isEmployee ? 'Personal AI Work Intelligence' : 'Enterprise HR Intelligence';
 
   useEffect(() => {
     setMounted(true);
@@ -134,14 +141,14 @@ export function AiAssistantWidget() {
       <div className="fixed bottom-6 right-6 z-50">
         <Button
           onClick={toggleOpen}
-          className="h-12 px-4 rounded-full bg-slate-900 dark:bg-slate-100 text-slate-100 dark:text-slate-900 shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all duration-200 border border-slate-700/40 dark:border-slate-300/40 flex items-center space-x-2.5 font-medium text-xs tracking-wide cursor-pointer"
+          className="h-11 px-4 rounded-full bg-accent text-accent-foreground shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border border-accent/40 flex items-center space-x-2.5 font-bold text-xs tracking-wide cursor-pointer group"
         >
-          {/* Odoo / Dayflow Brand Logo */}
-          <div className="h-6 w-6 rounded-md bg-white p-0.5 shadow-2xs flex items-center justify-center shrink-0">
-            <img src="/logo.png" alt="Odoo AI" className="h-full w-full object-contain" />
+          {/* Dayflow Brand Logo Container */}
+          <div className="h-6 w-6 rounded-lg bg-card p-0.5 shadow-2xs flex items-center justify-center shrink-0 border border-border/60">
+            <img src="/logo.png" alt="Dayflow AI" className="h-full w-full object-contain" />
           </div>
-          <span className="font-semibold text-xs">HR Assistant</span>
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse"></span>
+          <span className="font-extrabold text-xs tracking-tight">{assistantTitle}</span>
+          <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse"></span>
         </Button>
       </div>
     );
@@ -150,24 +157,25 @@ export function AiAssistantWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       <Card
-        className={`w-[400px] sm:w-[460px] shadow-2xl border border-border bg-card text-card-foreground transition-all duration-200 overflow-hidden flex flex-col rounded-2xl ${
+        className={`w-[400px] sm:w-[460px] shadow-2xl border border-border bg-card text-card-foreground transition-all duration-200 overflow-hidden flex flex-col rounded-3xl ${
           isMinimized ? 'h-[60px]' : 'h-[580px] max-h-[85vh]'
         }`}
       >
-        {/* Redesigned Premium Header */}
-        <div className="px-4 py-3 bg-slate-950 text-slate-50 border-b border-slate-800/80 flex items-center justify-between shrink-0 shadow-xs">
+        {/* Dayflow Theme Header */}
+        <div className="px-4 py-3.5 bg-accent text-accent-foreground border-b border-accent/30 flex items-center justify-between shrink-0 shadow-xs">
           <div className="flex items-center space-x-3">
-            {/* Odoo Logo Container */}
-            <div className="relative h-9 w-9 rounded-xl bg-white p-1 shadow-md border border-slate-200/20 flex items-center justify-center shrink-0">
-              <img src="/logo.png" alt="Odoo AI" className="h-full w-full object-contain" />
-              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-slate-950 shadow-[0_0_6px_rgba(16,185,129,0.8)]"></span>
+            {/* Odoo / Dayflow Logo Container */}
+            <div className="relative h-9 w-9 rounded-2xl bg-card p-1 shadow-md border border-border flex items-center justify-center shrink-0">
+              <img src="/logo.png" alt="Dayflow AI" className="h-full w-full object-contain" />
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-accent shadow-[0_0_6px_rgba(16,185,129,0.9)]"></span>
             </div>
 
             <div className="flex flex-col">
-              <div className="flex items-center space-x-2">
-                <h3 className="font-bold text-xs tracking-tight text-white">Dayflow HR Assistant</h3>
+              <div className="flex items-center space-x-1.5">
+                <h3 className="font-extrabold text-xs tracking-tight text-accent-foreground">Dayflow {assistantTitle}</h3>
+                <Sparkles className="h-3 w-3 text-accent-foreground/80" />
               </div>
-              <p className="text-[10px] text-slate-400 font-medium">Enterprise HR Knowledge Base</p>
+              <p className="text-[10px] text-accent-foreground/85 font-medium">{assistantSubtitle}</p>
             </div>
           </div>
 
@@ -179,7 +187,7 @@ export function AiAssistantWidget() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+                      className="h-7 w-7 text-accent-foreground/80 hover:text-accent-foreground hover:bg-accent-foreground/15 rounded-lg cursor-pointer transition-colors"
                       onClick={clearHistory}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -193,7 +201,7 @@ export function AiAssistantWidget() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+              className="h-7 w-7 text-accent-foreground/80 hover:text-accent-foreground hover:bg-accent-foreground/15 rounded-lg cursor-pointer transition-colors"
               onClick={toggleMinimize}
             >
               {isMinimized ? <Maximize2 className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
@@ -202,7 +210,7 @@ export function AiAssistantWidget() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+              className="h-7 w-7 text-accent-foreground/80 hover:text-accent-foreground hover:bg-accent-foreground/15 rounded-lg cursor-pointer transition-colors"
               onClick={toggleOpen}
             >
               <X className="h-4 w-4" />
@@ -226,25 +234,25 @@ export function AiAssistantWidget() {
                       isUser ? 'flex-row-reverse space-x-reverse' : ''
                     }`}
                   >
-                    {/* Message Avatar: Odoo Logo for AI, Logged-in User Avatar for User */}
+                    {/* Message Avatar */}
                     <div
-                      className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 overflow-hidden shadow-2xs border ${
+                      className={`h-7 w-7 rounded-xl flex items-center justify-center shrink-0 overflow-hidden shadow-2xs border ${
                         isUser
-                          ? 'bg-slate-900 dark:bg-slate-100 text-slate-100 dark:text-slate-900 border-slate-700'
-                          : 'bg-white border-slate-200 p-0.5'
+                          ? 'bg-accent text-accent-foreground border-accent/40'
+                          : 'bg-card border-border p-0.5'
                       }`}
                     >
                       {isUser ? (
                         <img
                           src={userAvatar}
                           alt={userName}
-                          className="h-full w-full object-cover rounded-md"
+                          className="h-full w-full object-cover rounded-xl"
                           suppressHydrationWarning
                         />
                       ) : (
                         <img
                           src="/logo.png"
-                          alt="Odoo AI"
+                          alt="Dayflow AI"
                           className="h-full w-full object-contain"
                         />
                       )}
@@ -252,30 +260,30 @@ export function AiAssistantWidget() {
 
                     <div className="max-w-[88%] flex flex-col">
                       <div
-                        className={`p-3.5 rounded-xl text-xs leading-relaxed ${
+                        className={`p-3.5 rounded-2xl text-xs leading-relaxed ${
                           isUser
-                            ? 'bg-slate-900 dark:bg-slate-100 text-slate-100 dark:text-slate-900 font-sans'
-                            : 'bg-card text-foreground border border-border shadow-xs'
+                            ? 'bg-accent text-accent-foreground font-sans shadow-xs'
+                            : 'bg-card text-foreground border border-border shadow-2xs'
                         }`}
                       >
                         {isUser ? (
-                          <div className="whitespace-pre-wrap font-sans">{textToRender}</div>
+                          <div className="whitespace-pre-wrap font-medium">{textToRender}</div>
                         ) : (
                           <div className="prose prose-xs dark:prose-invert max-w-none text-foreground text-xs leading-relaxed space-y-2">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
                               components={{
                                 table: ({ children }) => (
-                                  <div className="my-2.5 overflow-x-auto rounded-lg border border-border bg-card">
+                                  <div className="my-2.5 overflow-x-auto rounded-xl border border-border bg-card">
                                     <table className="w-full text-left text-xs border-collapse">{children}</table>
                                   </div>
                                 ),
                                 thead: ({ children }) => (
-                                  <thead className="bg-muted/80 border-b border-border font-semibold text-foreground">
+                                  <thead className="bg-muted/80 border-b border-border font-bold text-foreground">
                                     {children}
                                   </thead>
                                 ),
-                                th: ({ children }) => <th className="p-2 border-r border-border font-semibold text-foreground">{children}</th>,
+                                th: ({ children }) => <th className="p-2 border-r border-border font-bold text-foreground">{children}</th>,
                                 td: ({ children }) => <td className="p-2 border-t border-r border-border/60 text-foreground">{children}</td>,
                                 code: ({ children }) => (
                                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-[11px] text-foreground border border-border font-semibold">
@@ -285,8 +293,8 @@ export function AiAssistantWidget() {
                                 p: ({ children }) => <p className="mb-1.5 last:mb-0 leading-relaxed">{children}</p>,
                                 ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 my-1.5">{children}</ul>,
                                 ol: ({ children }) => <ol className="list-decimal pl-4 space-y-1 my-1.5">{children}</ol>,
-                                h3: ({ children }) => <h3 className="font-semibold text-sm text-foreground mt-2 mb-1">{children}</h3>,
-                                h4: ({ children }) => <h4 className="font-semibold text-xs text-foreground mt-2 mb-1">{children}</h4>,
+                                h3: ({ children }) => <h3 className="font-extrabold text-sm text-foreground mt-2 mb-1">{children}</h3>,
+                                h4: ({ children }) => <h4 className="font-extrabold text-xs text-foreground mt-2 mb-1">{children}</h4>,
                               }}
                             >
                               {textToRender}
@@ -312,11 +320,11 @@ export function AiAssistantWidget() {
 
               {isLoading && (
                 <div className="flex items-start space-x-2.5">
-                  <div className="h-7 w-7 rounded-lg bg-white border border-slate-200 p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
-                    <img src="/logo.png" alt="Odoo AI" className="h-full w-full object-contain" />
+                  <div className="h-7 w-7 rounded-xl bg-card border border-border p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+                    <img src="/logo.png" alt="Dayflow AI" className="h-full w-full object-contain" />
                   </div>
-                  <div className="p-3 rounded-xl bg-card border border-border text-xs text-muted-foreground flex items-center space-x-2">
-                    <div className="h-2 w-2 rounded-full bg-slate-500 animate-pulse"></div>
+                  <div className="p-3 rounded-2xl bg-card border border-border text-xs text-muted-foreground flex items-center space-x-2">
+                    <div className="h-2 w-2 rounded-full bg-accent animate-pulse"></div>
                     <span className="font-medium text-foreground">{LOADING_PHRASES[loadingPhraseIndex]}</span>
                   </div>
                 </div>
@@ -327,7 +335,7 @@ export function AiAssistantWidget() {
 
             {/* Input Bar */}
             <div className="p-3 border-t border-border bg-card shrink-0">
-              <div className="flex items-center space-x-2 bg-background rounded-lg p-1.5 border border-input focus-within:border-slate-500 transition-colors">
+              <div className="flex items-center space-x-2 bg-muted/20 rounded-2xl p-1.5 border border-input focus-within:border-accent focus-within:ring-1 focus-within:ring-accent transition-all">
                 <Search className="h-3.5 w-3.5 text-muted-foreground ml-1.5 shrink-0" />
                 <input
                   type="text"
@@ -342,7 +350,7 @@ export function AiAssistantWidget() {
                   onClick={() => sendMessage()}
                   disabled={isLoading || !inputQuery.trim()}
                   size="icon"
-                  className="h-7 w-7 rounded-md bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 text-slate-100 dark:text-slate-900 shrink-0 cursor-pointer"
+                  className="h-7 w-7 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 shrink-0 cursor-pointer shadow-xs"
                 >
                   <Send className="h-3.5 w-3.5" />
                 </Button>

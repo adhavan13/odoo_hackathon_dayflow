@@ -35,7 +35,7 @@ export interface AttendanceState {
   fetchAttendance: (month?: string) => Promise<void>;
   fetchToday: () => Promise<void>;
   checkIn: () => Promise<void>;
-  checkOut: () => Promise<void>;
+  checkOut: (note?: string) => Promise<void>;
   startBreak: () => Promise<void>;
   endBreak: () => Promise<void>;
   addAttendanceRecord: (rec: Omit<AttendanceRecord, "id">) => void;
@@ -43,7 +43,7 @@ export interface AttendanceState {
   todayRecord?: { inTime?: string; outTime?: string };
   checkTodayAttendance?: () => Promise<void>;
   punchIn?: () => Promise<void>;
-  punchOut?: () => Promise<void>;
+  punchOut?: (note?: string) => Promise<void>;
 }
 
 const normalizeStatus = (status?: string): AttendanceRecord["status"] => {
@@ -157,10 +157,10 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     }
   },
 
-  checkOut: async () => {
+  checkOut: async (note?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.post("/attendance/check-out", {});
+      const response = await api.post("/attendance/check-out", { note });
       const record = normalizeRecord(
         (response.data as any)?.attendance || response.data,
       );
@@ -208,6 +208,6 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       records: [{ ...record, id: `att_${Date.now()}` }, ...state.records],
     })),
   punchIn: async () => get().checkIn(),
-  punchOut: async () => get().checkOut(),
+  punchOut: async (note?: string) => get().checkOut(note),
   checkTodayAttendance: async () => get().fetchToday(),
 }));
