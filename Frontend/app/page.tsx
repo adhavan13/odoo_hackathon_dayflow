@@ -24,7 +24,54 @@ import { Label } from '@/components/ui/label';
 export type Section = 'overview' | 'pipeline' | 'deals' | 'team' | 'reports' | 'customers' | 'forecasting' | 'settings';
 
 export default function Home() {
-  const { switchRole } = useAuthStore();
+  const [role, setRole] = useState<UserRole>('employee');
+  const [loginIdOrEmail, setLoginIdOrEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { loginWithBackend, setAuth } = useAuthStore();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginIdOrEmail.trim() || !password.trim()) {
+      snackbar.error('Please enter both Login ID/Email and Password.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Attempt backend API login first
+      const loggedUser = await loginWithBackend(loginIdOrEmail.trim(), password);
+      setIsLoading(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = loggedUser.role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
+      }
+    } catch (err: any) {
+      // Fallback for demo credentials
+      const mockUser = {
+        id: role === 'admin' ? 'usr_admin_01' : 'usr_emp_02',
+        name: role === 'admin' ? 'Sarah Jenkins' : 'Alex Rivera',
+        email: loginIdOrEmail.includes('@') ? loginIdOrEmail : `${loginIdOrEmail.toLowerCase()}@company.com`,
+        role: role,
+        avatarUrl:
+          role === 'admin'
+            ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
+            : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        department: role === 'admin' ? 'Human Resources' : 'Software Engineering',
+        designation: role === 'admin' ? 'HR Officer / Admin' : 'Senior Frontend Developer',
+      };
+
+      setAuth(mockUser, 'mock_jwt_token_' + Date.now());
+      snackbar.info(`Logged in as ${mockUser.name} (Demo Mode)`);
+      setIsLoading(false);
+
+      if (typeof window !== 'undefined') {
+        window.location.href = role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
+      }
+    }
+  };
 
   return (
     <div className="h-screen w-full overflow-hidden bg-background text-foreground flex flex-col lg:flex-row selection:bg-accent selection:text-accent-foreground">
@@ -107,10 +154,6 @@ export default function Home() {
             <Building2 className="h-3.5 w-3.5 text-accent" />
             <span>Dayflow HRMS Platform</span>
           </div>
-          <span className="flex items-center gap-1.5 text-[11px]">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-            Vercel Ready & Active
-          </span>
         </div>
       </div>
 
