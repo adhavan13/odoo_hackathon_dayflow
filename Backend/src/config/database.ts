@@ -1,5 +1,5 @@
-import { Db, MongoClient } from 'mongodb';
-import { config } from './env.config';
+import { Db, MongoClient } from "mongodb";
+import { config } from "./env.config";
 
 let client: MongoClient;
 let database: Db;
@@ -14,7 +14,7 @@ export const connectDatabase = async () => {
 };
 
 export const getDatabase = () => {
-  if (!database) throw new Error('Database has not been connected.');
+  if (!database) throw new Error("Database has not been connected.");
   return database;
 };
 
