@@ -3,6 +3,7 @@ import {
   getSalarySlips,
   getSalaryStructure,
   getPayrollOverview,
+  updateSalaryStructure,
 } from '../controllers/payroll.controller';
 import { authenticateToken } from '../middlewares/auth.middleware';
 
@@ -12,6 +13,7 @@ router.use(authenticateToken);
 
 router.get('/slips', getSalarySlips);
 router.get('/structure', getSalaryStructure);
+router.put('/structure', updateSalaryStructure);
 router.get('/overview', getPayrollOverview);
 
 export default router;
