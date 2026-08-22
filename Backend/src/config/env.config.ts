@@ -8,6 +8,7 @@ export const config = {
   corsOrigin: process.env.CORS_ORIGIN || '*',
   jwtSecret: process.env.JWT_SECRET || 'dayflow_default_secret_key_2026',
   mongoUri: process.env.MONGODB_URI || '',
+  groqApiKey: process.env.GROQ_API_KEY || '',
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
     apiKey: process.env.CLOUDINARY_API_KEY || '',

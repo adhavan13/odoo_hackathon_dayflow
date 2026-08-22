@@ -5,6 +5,7 @@ import attendanceRoutes from './attendance.routes';
 import leaveRoutes from './leave.routes';
 import payrollRoutes from './payroll.routes';
 import uploadRoutes from './upload.routes';
+import aiAssistantRoutes from './aiAssistant.routes';
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use('/attendance', attendanceRoutes);
 router.use('/leave', leaveRoutes);
 router.use('/payroll', payrollRoutes);
 router.use('/upload', uploadRoutes);
+router.use('/ai-assistant', aiAssistantRoutes);
 
 export default router;
