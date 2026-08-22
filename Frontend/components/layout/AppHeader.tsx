@@ -159,7 +159,7 @@ export function AppHeader() {
     logout();
     snackbar.info('Logged out successfully');
     setShowLogoutConfirm(false);
-    router.push('/');
+    router.push('/auth/login');
   };
 
   const displayAvatar = mounted && user?.avatarUrl ? user.avatarUrl : '/user.png';

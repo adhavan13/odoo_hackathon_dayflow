@@ -48,6 +48,25 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Root open route to display API status
+app.get("/", (req: Request, res: Response) => {
+  res.status(200).json({
+    status: "success",
+    message: "Dayflow HRMS Backend API is running successfully",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    service: "Dayflow HRMS Backend API",
+    endpoints: {
+      health: "/api/health",
+      auth: "/api/v1/auth",
+      employees: "/api/v1/employees",
+      attendance: "/api/v1/attendance",
+      leave: "/api/v1/leave",
+      payroll: "/api/v1/payroll",
+    },
+  });
+});
+
 app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({
     status: "ok",
