@@ -54,7 +54,7 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-background text-foreground flex flex-col lg:flex-row selection:bg-accent selection:text-accent-foreground">
+    <div className="min-h-screen lg:h-screen w-full overflow-y-auto lg:overflow-hidden bg-background text-foreground flex flex-col lg:flex-row selection:bg-accent selection:text-accent-foreground">
       {/* Left Column: Project Showcase Hero Banner (Fixed) */}
       <div className="lg:w-1/2 h-full bg-gradient-to-br from-accent/25 via-background to-accent/10 border-b lg:border-b-0 lg:border-r border-border p-6 lg:p-12 flex flex-col justify-between relative overflow-hidden shrink-0">
         {/* Glow backdrop decorative circle */}

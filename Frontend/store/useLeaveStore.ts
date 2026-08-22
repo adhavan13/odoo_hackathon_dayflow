@@ -43,10 +43,20 @@ export const PUBLIC_HOLIDAYS_2026: PublicHoliday[] = [
   { date: '2026-12-25', name: 'Christmas' },
 ];
 
+const getInitialLimit = (key: string, defaultVal: number): number => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(key);
+    if (saved) return parseInt(saved, 10) || defaultVal;
+  }
+  return defaultVal;
+};
+
 interface LeaveState {
   leaves: LeaveRequest[];
   balances: LeaveBalance[];
   holidays: PublicHoliday[];
+  paidLeaveLimit: number;
+  sickLeaveLimit: number;
   isLoading: boolean;
   fetchLeaves: () => Promise<void>;
   fetchBalances: () => Promise<void>;
@@ -54,6 +64,7 @@ interface LeaveState {
   applyLeave: (leaveData: Omit<LeaveRequest, 'id' | 'status' | 'appliedOn'>) => Promise<void>;
   updateLeaveStatus: (id: string, status: 'Approved' | 'Rejected') => Promise<void>;
   addHoliday: (date: string, name: string) => Promise<void>;
+  updateLeaveLimits: (paidLimit: number, sickLimit: number) => void;
 }
 
 export const useLeaveStore = create<LeaveState>((set) => ({
@@ -132,9 +143,11 @@ export const useLeaveStore = create<LeaveState>((set) => ({
       appliedOn: '2026-06-01',
     },
   ],
+  paidLeaveLimit: getInitialLimit('dayflow_paid_leave_limit', 24),
+  sickLeaveLimit: getInitialLimit('dayflow_sick_leave_limit', 7),
   balances: [
-    { leaveType: 'Paid Time off', allocatedDays: 24, usedDays: 4 },
-    { leaveType: 'Sick Leave', allocatedDays: 7, usedDays: 2 },
+    { leaveType: 'Paid Time off', allocatedDays: getInitialLimit('dayflow_paid_leave_limit', 24), usedDays: 4 },
+    { leaveType: 'Sick Leave', allocatedDays: getInitialLimit('dayflow_sick_leave_limit', 7), usedDays: 2 },
     { leaveType: 'Unpaid Leaves', allocatedDays: 0, usedDays: 0 },
   ],
   holidays: PUBLIC_HOLIDAYS_2026,
@@ -288,5 +301,21 @@ export const useLeaveStore = create<LeaveState>((set) => ({
         holidays: [...state.holidays, { date, name }],
       }));
     }
+  },
+
+  updateLeaveLimits: (paidLimit: number, sickLimit: number) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dayflow_paid_leave_limit', String(paidLimit));
+      localStorage.setItem('dayflow_sick_leave_limit', String(sickLimit));
+    }
+    set((state) => ({
+      paidLeaveLimit: paidLimit,
+      sickLeaveLimit: sickLimit,
+      balances: state.balances.map((b) => {
+        if (b.leaveType === 'Paid Time off') return { ...b, allocatedDays: paidLimit };
+        if (b.leaveType === 'Sick Leave') return { ...b, allocatedDays: sickLimit };
+        return b;
+      }),
+    }));
   },
 }));

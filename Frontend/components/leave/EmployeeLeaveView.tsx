@@ -37,7 +37,7 @@ import {
 
 export function EmployeeLeaveView() {
   const { user } = useAuthStore();
-  const { leaves, balances, fetchLeaves, fetchBalances, applyLeave } = useLeaveStore();
+  const { leaves, balances, paidLeaveLimit, sickLeaveLimit, fetchLeaves, fetchBalances, applyLeave } = useLeaveStore();
 
   useEffect(() => {
     fetchLeaves();
@@ -147,9 +147,12 @@ export function EmployeeLeaveView() {
   const totalPages = Math.ceil(filteredLeaves.length / pageSize) || 1;
   const paginatedLeaves = filteredLeaves.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Compute Balances
-  const paidBal = balances?.find((b: LeaveBalance) => b.leaveType === 'Paid Time off') || { allocatedDays: 24, usedDays: 4 };
-  const sickBal = balances?.find((b: LeaveBalance) => b.leaveType === 'Sick Leave') || { allocatedDays: 7, usedDays: 2 };
+  // Compute Balances using Organization Policy Limits
+  const allocatedPaidDays = paidLeaveLimit || 24;
+  const allocatedSickDays = sickLeaveLimit || 7;
+
+  const paidBal = balances?.find((b: LeaveBalance) => b.leaveType === 'Paid Time off') || { allocatedDays: allocatedPaidDays, usedDays: 4 };
+  const sickBal = balances?.find((b: LeaveBalance) => b.leaveType === 'Sick Leave') || { allocatedDays: allocatedSickDays, usedDays: 2 };
   const unpaidBal = balances?.find((b: LeaveBalance) => b.leaveType === 'Unpaid Leaves') || { allocatedDays: 0, usedDays: 0 };
 
   const approvedLeaves = myLeaves.filter((l) => l.status === 'Approved');
@@ -157,8 +160,8 @@ export function EmployeeLeaveView() {
   const usedSickDays = approvedLeaves.filter((l) => l.leaveType === 'Sick Leave').reduce((a, b) => a + b.daysCount, 0) || sickBal.usedDays;
   const usedUnpaidDays = approvedLeaves.filter((l) => l.leaveType === 'Unpaid Leaves').reduce((a, b) => a + b.daysCount, 0) || unpaidBal.usedDays;
 
-  const remPaid = Math.max(0, paidBal.allocatedDays - usedPaidDays);
-  const remSick = Math.max(0, sickBal.allocatedDays - usedSickDays);
+  const remPaid = Math.max(0, allocatedPaidDays - usedPaidDays);
+  const remSick = Math.max(0, allocatedSickDays - usedSickDays);
   const pendingCount = myLeaves.filter((l) => l.status === 'Pending').length;
 
   return (
@@ -169,8 +172,8 @@ export function EmployeeLeaveView() {
         <div className="p-4 rounded-xl border border-accent/30 bg-card flex items-center justify-between shadow-2xs hover:border-accent/50 transition-all">
           <div>
             <p className="text-[11px] font-bold text-accent uppercase tracking-wider">Paid Time off Balance</p>
-            <p className="text-lg font-extrabold text-foreground mt-0.5">{String(remPaid).padStart(2, '0')} / {paidBal.allocatedDays} Days</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{usedPaidDays} Days taken this year</p>
+            <p className="text-lg font-extrabold text-foreground mt-0.5">{String(remPaid).padStart(2, '0')} / {allocatedPaidDays} Days</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{usedPaidDays} Days used • Policy Limit: {allocatedPaidDays}/yr</p>
           </div>
           <div className="h-9 w-9 rounded-lg bg-accent/15 text-accent flex items-center justify-center border border-accent/20 shrink-0">
             <Palmtree className="h-4 w-4" />
@@ -181,8 +184,8 @@ export function EmployeeLeaveView() {
         <div className="p-4 rounded-xl border border-amber-500/30 bg-card flex items-center justify-between shadow-2xs hover:border-amber-500/50 transition-all">
           <div>
             <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Sick Leave Balance</p>
-            <p className="text-lg font-extrabold text-foreground mt-0.5">{String(remSick).padStart(2, '0')} / {sickBal.allocatedDays} Days</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{usedSickDays} Days used for medical</p>
+            <p className="text-lg font-extrabold text-foreground mt-0.5">{String(remSick).padStart(2, '0')} / {allocatedSickDays} Days</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{usedSickDays} Days used • Policy Limit: {allocatedSickDays}/yr</p>
           </div>
           <div className="h-9 w-9 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center border border-amber-500/20 shrink-0">
             <Stethoscope className="h-4 w-4" />
