@@ -31,6 +31,7 @@ interface AdminPayrollRow {
   employeeName: string;
   department: string;
   designation: string;
+  avatarUrl?: string;
   payableDays: number;
   totalWorkingDays: number;
   grossSalary: number;
@@ -42,7 +43,7 @@ interface AdminPayrollRow {
 
 export default function AdminPayrollPage() {
   const router = useRouter();
-  const { employees } = useEmployeeStore();
+  const { employees, fetchEmployees } = useEmployeeStore();
 
   const [financialYear, setFinancialYear] = useState("2026-27");
   const [selectedMonth, setSelectedMonth] = useState("August 2026");
@@ -50,6 +51,10 @@ export default function AdminPayrollPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
 
   // Generate initial dataset for employees
   const initialRows: AdminPayrollRow[] = employees.map((emp, i) => {
@@ -61,6 +66,7 @@ export default function AdminPayrollPage() {
       employeeName: emp.name,
       department: emp.department || "Engineering",
       designation: emp.designation || "Software Engineer",
+      avatarUrl: emp.avatarUrl,
       payableDays: 26,
       totalWorkingDays: 26,
       grossSalary: monthlyWage,
@@ -85,6 +91,7 @@ export default function AdminPayrollPage() {
             employeeName: emp.name,
             department: emp.department || "Engineering",
             designation: emp.designation || "Software Engineer",
+            avatarUrl: emp.avatarUrl,
             payableDays: 26,
             totalWorkingDays: 26,
             grossSalary: monthlyWage,
@@ -308,8 +315,12 @@ export default function AdminPayrollPage() {
                       {/* Employee Column */}
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs shrink-0">
-                            {rec.employeeName.substring(0, 2).toUpperCase()}
+                          <div className="h-9 w-9 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
+                            {rec.avatarUrl ? (
+                              <img src={rec.avatarUrl} alt={rec.employeeName} className="h-full w-full object-cover" />
+                            ) : (
+                              rec.employeeName.substring(0, 2).toUpperCase()
+                            )}
                           </div>
                           <div>
                             <p className="font-extrabold text-foreground">{rec.employeeName}</p>

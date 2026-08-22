@@ -470,6 +470,21 @@ export class AuthService {
     if (!user) throw new ApiError(404, "User not found.");
 
     await collection.updateOne({ id: userId }, { $set: updates });
+
+    if (updates.avatarUrl || updates.name || updates.department || updates.designation) {
+      await getDatabase().collection("employees").updateMany(
+        { $or: [{ email: user.email }, { id: user.id }, { employeeCode: user.employeeId }] },
+        {
+          $set: {
+            ...(updates.avatarUrl ? { avatarUrl: updates.avatarUrl } : {}),
+            ...(updates.name ? { name: updates.name } : {}),
+            ...(updates.department ? { department: updates.department } : {}),
+            ...(updates.designation ? { designation: updates.designation } : {}),
+          },
+        }
+      );
+    }
+
     const updated = await collection.findOne({ id: userId });
     return publicUser(updated!);
   }

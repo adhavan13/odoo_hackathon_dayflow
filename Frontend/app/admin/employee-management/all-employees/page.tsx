@@ -21,8 +21,12 @@ import {
 } from '@/components/ui/dialog';
 
 export default function AllEmployeesPage() {
-  const { employees, addEmployee } = useEmployeeStore();
+  const { employees, fetchEmployees, addEmployee } = useEmployeeStore();
   const [search, setSearch] = useState('');
+
+  React.useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
 
   // Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -152,7 +156,11 @@ export default function AllEmployeesPage() {
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
-                          <img src={emp.avatarUrl || '/user.png'} alt={emp.name} className="h-full w-full object-cover" />
+                          {emp.avatarUrl ? (
+                            <img src={emp.avatarUrl} alt={emp.name} className="h-full w-full object-cover" />
+                          ) : (
+                            emp.name.substring(0, 2).toUpperCase()
+                          )}
                         </div>
                         <div>
                           <p className="font-bold text-foreground">{emp.name}</p>

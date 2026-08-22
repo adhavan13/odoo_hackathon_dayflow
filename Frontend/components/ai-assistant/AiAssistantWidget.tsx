@@ -17,6 +17,7 @@ import {
   Users,
   Search,
   Sparkles,
+  Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -142,10 +143,8 @@ export function AiAssistantWidget() {
                 onClick={toggleOpen}
                 className="h-12 w-12 rounded-full bg-accent text-accent-foreground shadow-2xl hover:shadow-accent/40 hover:scale-110 transition-all duration-300 border border-accent/40 flex items-center justify-center p-0 cursor-pointer relative group"
               >
-                {/* Dayflow Brand Logo Container */}
-                <div className="h-7 w-7 rounded-full bg-card p-1 shadow-2xs flex items-center justify-center border border-border/60 overflow-hidden">
-                  <img src="/logo.png" alt="Dayflow AI" className="h-full w-full object-contain" />
-                </div>
+                {/* AI Assistant Icon */}
+                <Bot className="h-6 w-6 text-accent-foreground" />
                 {/* Pulse Status Indicator Dot */}
                 <span className="absolute top-0.5 right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse" />
               </Button>
@@ -165,9 +164,9 @@ export function AiAssistantWidget() {
         {/* Dayflow Theme Header */}
         <div className="px-4 py-3.5 bg-accent text-accent-foreground border-b border-accent/30 flex items-center justify-between shrink-0 shadow-xs">
           <div className="flex items-center space-x-3">
-            {/* Odoo / Dayflow Logo Container */}
-            <div className="relative h-9 w-9 rounded-2xl bg-card p-1 shadow-md border border-border flex items-center justify-center shrink-0">
-              <img src="/logo.png" alt="Dayflow AI" className="h-full w-full object-contain" />
+            {/* AI Assistant Icon Container */}
+            <div className="relative h-9 w-9 rounded-2xl bg-card text-accent p-1 shadow-md border border-border flex items-center justify-center shrink-0">
+              <Bot className="h-5 w-5" />
               <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-accent shadow-[0_0_6px_rgba(16,185,129,0.9)]"></span>
             </div>
 

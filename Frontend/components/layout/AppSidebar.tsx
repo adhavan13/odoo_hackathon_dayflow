@@ -41,19 +41,8 @@ const adminNavConfig: NavGroup[] = [
     title: "Dashboard",
     icon: LayoutDashboard,
     items: [
-      { title: "Overview", href: "/admin/dashboard/overview" },
+      { title: "Employees", href: "/admin/dashboard/employees" },
       { title: "HR Analytics", href: "/admin/dashboard/hr-analytics" },
-    ],
-  },
-  {
-    title: "Employee Management",
-    icon: Users,
-    items: [
-      {
-        title: "All Employees",
-        href: "/admin/employee-management/all-employees",
-      },
-      { title: "Departments", href: "/admin/employee-management/departments" },
     ],
   },
   {
