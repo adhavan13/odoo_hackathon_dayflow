@@ -9,7 +9,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     employeeId: string;
-    role: "HR" | "EMPLOYEE";
+    role: "ADMIN" | "HR" | "EMPLOYEE";
     name?: string;
   };
 }
@@ -44,7 +44,7 @@ export const authenticateToken = async (
   }
 };
 
-export const requireRole = (roles: Array<"HR" | "EMPLOYEE">) => {
+export const requireRole = (roles: Array<"ADMIN" | "HR" | "EMPLOYEE">) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return next(new ApiError(403, "Forbidden. Insufficient permissions."));

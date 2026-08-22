@@ -81,27 +81,59 @@ Errors use this format:
 
 ### POST `/auth/signup`
 
-Creates a user. The user cannot log in until the email is verified.
+Creates a company and its initial `ADMIN` account.
 
 Request:
 
 ```json
 {
-  "employeeId": "EMP999",
-  "email": "john@example.com",
+  "companyName": "Oclo India",
+  "name": "Adhavan SE",
+  "email": "adhavan@example.com",
+  "phone": "9876543210",
   "password": "StrongPassword123!",
-  "role": "EMPLOYEE"
+  "confirmPassword": "StrongPassword123!",
+  "logo": "https://example.com/logo.png"
 }
 ```
 
 Rules:
 
-- Employee ID must look like `EMP999` or `EMP-999`.
+- Company name, name, and phone are required.
+- Email must be valid and unique.
 - Password must contain at least 8 characters, uppercase, lowercase, and a number.
-- Role must be `EMPLOYEE` or `HR`.
-- Employee ID and email must be unique.
+- `password` and `confirmPassword` must match.
+- A unique company code is generated from the company name. For example, `Oclo India` becomes `OI`.
+- The optional `logo` value is stored with the company and admin account.
 
-The development response includes `verificationToken` so the flow can be tested without an email provider.
+The password is stored as a bcrypt hash. The response includes `accessToken` and a development-only `verificationToken` so the flow can be tested without an email provider. The account must still verify its email before normal login is allowed.
+
+Success response:
+
+```json
+{
+  "success": true,
+  "message": "Company registered successfully. Please verify your email before logging in.",
+  "user": {
+    "id": "uuid",
+    "name": "Adhavan SE",
+    "email": "adhavan@example.com",
+    "role": "ADMIN",
+    "companyId": "uuid",
+    "phone": "9876543210",
+    "logo": "https://example.com/logo.png"
+  },
+  "company": {
+    "id": "uuid",
+    "name": "Oclo India",
+    "companyCode": "OI",
+    "logo": "https://example.com/logo.png"
+  },
+  "accessToken": "JWT_TOKEN",
+  "verificationToken": "VERIFICATION_TOKEN",
+  "verificationOtp": "123456"
+}
+```
 
 ### GET `/auth/verify-email?token=VERIFICATION_TOKEN`
 
@@ -119,6 +151,46 @@ Success response:
   "message": "Email verified successfully"
 }
 ```
+
+### POST `/auth/send-verification-otp`
+
+Sends a new 6-digit OTP to an unverified user's email. In development, the OTP is returned as `verificationOtp` and logged by the backend because no email provider is configured.
+
+Request:
+
+```json
+{
+  "email": "adhavan@example.com"
+}
+```
+
+### POST `/auth/resend-verification-otp`
+
+Generates and sends a fresh OTP. It uses the same request and response format as `/auth/send-verification-otp`.
+
+### POST `/auth/verify-email`
+
+Verifies an email using the 6-digit OTP. The OTP expires after 10 minutes and is invalidated after successful verification.
+
+Request:
+
+```json
+{
+  "email": "adhavan@example.com",
+  "otp": "123456"
+}
+```
+
+Success response:
+
+```json
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
+```
+
+The older `GET /auth/verify-email?token=...` verification-link endpoint remains available.
 
 ### POST `/auth/login`
 

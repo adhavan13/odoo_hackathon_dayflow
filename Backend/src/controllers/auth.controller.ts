@@ -15,11 +15,21 @@ export const loginUser = asyncHandler(
 );
 
 export const signupUser = asyncHandler(async (req: Request, res: Response) => {
-  const { employeeId, email, password, role } = req.body;
-  const result = await AuthService.signup(employeeId, email, password, role);
+  const { companyName, name, email, phone, password, confirmPassword, logo } =
+    req.body;
+  const result = await AuthService.signup(
+    companyName,
+    name,
+    email,
+    phone,
+    password,
+    confirmPassword,
+    logo,
+  );
   return res.status(201).json({
     success: true,
-    message: "Signup successful. Please verify your email.",
+    message:
+      "Company registered successfully. Please verify your email before logging in.",
     ...result,
   });
 });
@@ -30,6 +40,28 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .json({ success: true, message: "Email verified successfully" });
 });
+
+export const sendVerificationOtp = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await AuthService.sendVerificationOtp(req.body.email);
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Verification OTP sent successfully.",
+        verificationOtp: result.otp,
+      });
+  },
+);
+
+export const verifyEmailOtp = asyncHandler(
+  async (req: Request, res: Response) => {
+    await AuthService.verifyEmailOtp(req.body.email, req.body.otp);
+    return res
+      .status(200)
+      .json({ success: true, message: "Email verified successfully" });
+  },
+);
 
 export const getCurrentUser = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
