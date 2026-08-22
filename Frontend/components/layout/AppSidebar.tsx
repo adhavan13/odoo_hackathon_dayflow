@@ -59,7 +59,6 @@ const adminNavConfig: NavGroup[] = [
     title: 'Attendance',
     icon: Clock,
     items: [
-      { title: 'Attendance Overview', href: '/admin/attendance/overview' },
       { title: 'Daily Attendance', href: '/admin/attendance/daily-attendance' },
       { title: 'Attendance Reports', href: '/admin/attendance/reports' },
     ],
@@ -133,8 +132,6 @@ const employeeNavConfig: NavGroup[] = [
     icon: Clock,
     items: [
       { title: 'My Attendance', href: '/employee/attendance/my-attendance' },
-      { title: 'Check In / Check Out', href: '/employee/attendance/check-in-out' },
-      { title: 'Attendance History', href: '/employee/attendance/history' },
     ],
   },
   {

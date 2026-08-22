@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PageContainer } from '@/components/ui/page-container';
-import { useAttendanceStore } from '@/store';
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,12 +18,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { DatePicker } from '@/components/ui/date-picker';
+import { api } from '@/utils/api';
+
+const formatTime = (value?: string | null) => {
+  if (!value) return '--';
+  const [hours, minutes] = value.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return value;
+  return `${String(hours % 12 || 12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
+};
 
 export default function AdminDailyAttendancePage() {
-  const { records } = useAttendanceStore();
-
   // Navigation & Filter State
-  const [selectedDate, setSelectedDate] = useState('2025-10-22');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+  const [records, setRecords] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -32,6 +39,34 @@ export default function AdminDailyAttendancePage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+
+  useEffect(() => {
+    const loadAttendance = async () => {
+      setIsLoading(true);
+      try {
+        const response = await api.get('/attendance/today', {
+          params: {
+            date: selectedDate,
+            search: search || undefined,
+            status: statusFilter,
+            department: departmentFilter,
+          },
+        });
+        const employeeResponse = await api.get('/employees');
+        const employees = (employeeResponse.data as any) || [];
+        const attendance = (response.data as any)?.attendance || [];
+        setRecords(attendance.map((record: any) => {
+          const employee = employees.find((item: any) => item.id === record.employeeId || item.name === record.employeeName);
+          return { ...record, department: record.department || employee?.department, status: record.status === 'PRESENT' ? 'Present' : record.status === 'LEAVE' ? 'On Leave' : record.status === 'HALF_DAY' ? 'Half Day' : 'Absent' };
+        }));
+      } catch {
+        setRecords([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadAttendance();
+  }, [selectedDate, search, statusFilter, departmentFilter]);
 
   // Filter records by date, search, department, and status
   const filteredRecords = records.filter((rec) => {
@@ -153,9 +188,9 @@ export default function AdminDailyAttendancePage() {
               onValueChange={setDepartmentFilter}
               options={[
                 { label: 'All Departments', value: 'all' },
-                { label: 'Software Engineering', value: 'Software Engineering' },
+                { label: 'Engineering', value: 'Engineering' },
                 { label: 'Human Resources', value: 'Human Resources' },
-                { label: 'Sales & Marketing', value: 'Sales & Marketing' },
+                { label: 'Product', value: 'Product' },
               ]}
               size="sm"
               className="w-44 text-xs h-8"
@@ -167,8 +202,9 @@ export default function AdminDailyAttendancePage() {
               options={[
                 { label: 'All Statuses', value: 'all' },
                 { label: 'Present', value: 'present' },
-                { label: 'Late', value: 'late' },
                 { label: 'On Leave', value: 'on leave' },
+                { label: 'Absent', value: 'absent' },
+                { label: 'Half Day', value: 'half day' },
               ]}
               size="sm"
               className="w-36 text-xs h-8"
@@ -178,7 +214,7 @@ export default function AdminDailyAttendancePage() {
 
         {/* Selected Date Header */}
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-base font-extrabold text-foreground">22, October 2025</h3>
+          <h3 className="text-base font-extrabold text-foreground">{new Date(`${selectedDate}T00:00:00`).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</h3>
           <span className="text-xs text-muted-foreground">Attendance Basis for Payroll Computation</span>
         </div>
 
@@ -197,7 +233,9 @@ export default function AdminDailyAttendancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {paginatedRecords.length > 0 ? (
+                {isLoading ? (
+                  <tr><td colSpan={6} className="p-8 text-center text-muted-foreground text-xs">Loading attendance...</td></tr>
+                ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((rec) => (
                     <tr key={rec.id} className="hover:bg-muted/30 transition-colors">
                       {/* Emp Column */}
@@ -214,12 +252,12 @@ export default function AdminDailyAttendancePage() {
                       </td>
 
                       {/* Check In */}
-                      <td className="p-4 font-mono font-bold text-foreground">{rec.checkIn}</td>
+                      <td className="p-4 font-mono font-bold text-foreground">{formatTime(rec.checkIn)}</td>
 
                       {/* Check Out */}
                       <td className="p-4 font-mono font-bold text-foreground">
                         {rec.checkOut ? (
-                          rec.checkOut
+                          formatTime(rec.checkOut)
                         ) : (
                           <span className="text-emerald-600 dark:text-emerald-400 font-semibold animate-pulse">
                             Active (In Shift)

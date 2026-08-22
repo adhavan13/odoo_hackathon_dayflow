@@ -105,6 +105,9 @@ export const getAdminToday = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const result = await AttendanceService.getTodayForAdmin(
       req.query.search as string | undefined,
+      req.query.date as string | undefined,
+      req.query.status as string | undefined,
+      req.query.department as string | undefined,
     );
     return res.status(200).json({ success: true, ...result });
   },
