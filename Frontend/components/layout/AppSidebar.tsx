@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
@@ -20,6 +20,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   X,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore, useSidebarStore, UserRole } from '@/store';
@@ -175,7 +176,8 @@ const employeeNavConfig: NavGroup[] = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { role, switchRole, user } = useAuthStore();
+  const router = useRouter();
+  const { role } = useAuthStore();
   const {
     isCollapsed,
     isMobileOpen,
@@ -186,11 +188,6 @@ export function AppSidebar() {
   } = useSidebarStore();
 
   const navConfig = role === 'admin' ? adminNavConfig : employeeNavConfig;
-
-  const handleRoleToggle = (newRole: UserRole) => {
-    switchRole(newRole);
-    setMobileOpen(false);
-  };
 
   const SidebarContent = (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300">
@@ -212,73 +209,52 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           size="icon"
-          className="hidden md:flex h-8 w-8 text-muted-foreground hover:text-foreground"
+          className="hidden md:flex h-8 w-8 text-muted-foreground hover:bg-accent hover:text-accent-foreground group transition-colors cursor-pointer"
           onClick={toggleCollapse}
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          {isCollapsed ? (
+            <PanelLeft className="h-4 w-4 group-hover:text-accent-foreground" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4 group-hover:text-accent-foreground" />
+          )}
         </Button>
 
         {/* Close Button for Mobile */}
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden h-8 w-8 text-muted-foreground"
+          className="md:hidden h-8 w-8 text-muted-foreground hover:bg-accent hover:text-accent-foreground group transition-colors cursor-pointer"
           onClick={() => setMobileOpen(false)}
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4 group-hover:text-accent-foreground" />
         </Button>
       </div>
 
-      {/* User Role Switcher Header */}
+      {/* Portal Indicator */}
       <div className="p-3 border-b border-sidebar-border bg-sidebar-accent/40">
         {!isCollapsed ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Active Portal</span>
-              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-medium">
-                {role === 'admin' ? '👨‍💼 Admin' : '👤 Employee'}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-1 p-1 bg-background/50 rounded-lg border border-sidebar-border">
-              <button
-                type="button"
-                onClick={() => handleRoleToggle('admin')}
-                className={cn(
-                  'flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-medium transition-all',
-                  role === 'admin'
-                    ? 'bg-accent text-accent-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRoleToggle('employee')}
-                className={cn(
-                  'flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-medium transition-all',
-                  role === 'employee'
-                    ? 'bg-accent text-accent-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <UserCheck className="h-3.5 w-3.5" />
-                Employee
-              </button>
-            </div>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Active Portal</span>
+            <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-accent/15 text-accent font-medium border border-accent/30">
+              {role === 'admin' ? (
+                <>
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Admin
+                </>
+              ) : (
+                <>
+                  <UserCheck className="h-3.5 w-3.5" />
+                  Employee
+                </>
+              )}
+            </span>
           </div>
         ) : (
           <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => handleRoleToggle(role === 'admin' ? 'employee' : 'admin')}
-              className="p-2 rounded-lg bg-sidebar-accent text-sidebar-accent-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-              title={`Switch to ${role === 'admin' ? 'Employee' : 'Admin'} portal`}
-            >
+            <div className="p-2 rounded-lg bg-accent/15 text-accent" title={`${role === 'admin' ? 'Admin' : 'Employee'} Portal`}>
               {role === 'admin' ? <ShieldCheck className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-            </button>
+            </div>
           </div>
         )}
       </div>
@@ -344,23 +320,41 @@ export function AppSidebar() {
         })}
       </div>
 
-      {/* User Profile Mini Footer */}
+      {/* Help & System Status Footer */}
       <div className="p-3 border-t border-sidebar-border mt-auto bg-sidebar-accent/20">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
-            {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-            ) : (
-              user?.name?.substring(0, 2).toUpperCase() || 'US'
-            )}
-          </div>
-          {!isCollapsed && (
-            <div className="flex flex-col truncate">
-              <span className="text-xs font-semibold text-sidebar-foreground truncate">{user?.name}</span>
-              <span className="text-[10px] text-muted-foreground truncate">{user?.designation}</span>
+        {!isCollapsed ? (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                router.push(role === 'admin' ? '/admin/docs' : '/employee/docs');
+                setMobileOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors cursor-pointer"
+            >
+              <HelpCircle className="h-4 w-4 text-accent shrink-0" />
+              <span>Help & Documentation</span>
+            </button>
+            <div className="flex items-center justify-between px-2.5 pt-1 text-[11px] text-muted-foreground border-t border-sidebar-border/40">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Operational</span>
+              </span>
+              <span className="font-mono text-[10px]">v1.0.0</span>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => router.push(role === 'admin' ? '/admin/docs' : '/employee/docs')}
+              className="p-2 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors cursor-pointer"
+              title="Help & Documentation"
+            >
+              <HelpCircle className="h-4 w-4 text-accent" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

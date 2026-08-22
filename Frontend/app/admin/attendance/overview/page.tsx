@@ -1,11 +1,7 @@
-import { PageContainer } from '@/components/ui/page-container';
+'use client';
+
+import AdminDailyAttendancePage from '../daily-attendance/page';
 
 export default function AdminAttendanceOverviewPage() {
-  return (
-    <PageContainer
-      title="Attendance Overview"
-      subtitle="Organization-wide attendance statistics, punctuality, and trends"
-      badge="Attendance"
-    />
-  );
+  return <AdminDailyAttendancePage />;
 }

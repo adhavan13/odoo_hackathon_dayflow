@@ -1,11 +1,7 @@
-import { PageContainer } from '@/components/ui/page-container';
+'use client';
 
-export default function AttendanceHistoryPage() {
-  return (
-    <PageContainer
-      title="Attendance History"
-      subtitle="Historical log of all past attendance records and shift entries"
-      badge="History"
-    />
-  );
+import EmployeeMyAttendancePage from '../my-attendance/page';
+
+export default function EmployeeAttendanceHistoryPage() {
+  return <EmployeeMyAttendancePage />;
 }
