@@ -9,37 +9,28 @@ export interface ChatMessage {
   category?: 'attendance' | 'leave' | 'payroll' | 'employee' | 'policy' | 'general';
 }
 
-interface Suggestion {
-  id: string;
-  label: string;
-  query: string;
-  category: string;
-}
-
 interface AiAssistantState {
   isOpen: boolean;
   isMinimized: boolean;
   messages: ChatMessage[];
-  suggestions: Suggestion[];
   isLoading: boolean;
   inputQuery: string;
   toggleOpen: () => void;
   toggleMinimize: () => void;
   setInputQuery: (query: string) => void;
   sendMessage: (customQuery?: string) => Promise<void>;
-  fetchSuggestions: () => Promise<void>;
   fetchHistory: () => Promise<void>;
   clearHistory: () => Promise<void>;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
-const defaultSuggestions: Suggestion[] = [
-  { id: 's1', label: "Today's Attendance Summary", query: "Give me a summary of employee check-ins and absences for today.", category: 'attendance' },
-  { id: 's2', label: 'Pending Leave Applications', query: 'Which employees have pending leave requests waiting for approval?', category: 'leave' },
-  { id: 's3', label: 'Monthly Payroll Overview', query: 'What is the current monthly payroll expenditure breakdown?', category: 'payroll' },
-  { id: 's4', label: 'Employee Directory Stats', query: 'Show a breakdown of active employees by department.', category: 'employee' },
-];
+const getAuthHeaders = (): Record<string, string> => {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+};
 
 export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
   isOpen: false,
@@ -48,12 +39,11 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
     {
       id: 'welcome_msg',
       sender: 'assistant',
-      message: "👋 **Hello! I am your Dayflow HR AI Assistant.**\n\nHow can I help you today? You can ask me about employee records, live attendance, pending leaves, payroll, or company policies.",
+      message: "👋 **Welcome to Dayflow HR Assistant.**\n\nI am connected to your live MongoDB workspace database. Ask me any question about employees, attendance logs, leave requests, or payroll records.",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       category: 'general',
     },
   ],
-  suggestions: defaultSuggestions,
   isLoading: false,
   inputQuery: '',
 
@@ -85,8 +75,8 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
         }));
         set({ messages: formatted });
       }
-    } catch {
-      // Ignore if offline
+    } catch (err) {
+      console.warn('Failed to fetch AI chat history:', err);
     }
   },
 
@@ -123,8 +113,8 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
         }));
         return;
       }
-    } catch {
-      // Fallback response generator if server is disconnected
+    } catch (error) {
+      console.error('Error sending query to AI assistant endpoint:', error);
     }
 
     // Dynamic Client-side Fallback
@@ -152,11 +142,10 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
         category,
       };
 
-      set((state) => ({
-        messages: [...state.messages, assistantMsg],
-        isLoading: false,
-      }));
-    }, 600);
+    set((state) => ({
+      messages: [...state.messages, errorMsg],
+      isLoading: false,
+    }));
   },
 
   clearHistory: async () => {
@@ -165,7 +154,7 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
         {
           id: 'welcome_msg_reset',
           sender: 'assistant',
-          message: "🧹 Chat history cleared. How can I assist you next?",
+          message: "Chat history cleared. What would you like to query from MongoDB?",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           category: 'general',
         },
