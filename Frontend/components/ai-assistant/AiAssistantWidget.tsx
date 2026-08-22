@@ -10,8 +10,6 @@ import {
   MessageSquare,
   Send,
   X,
-  Minus,
-  Maximize2,
   Trash2,
   Clock,
   Calendar,
@@ -34,12 +32,10 @@ const LOADING_PHRASES = [
 export function AiAssistantWidget() {
   const {
     isOpen,
-    isMinimized,
     messages,
     isLoading,
     inputQuery,
     toggleOpen,
-    toggleMinimize,
     setInputQuery,
     sendMessage,
     fetchHistory,
@@ -106,10 +102,10 @@ export function AiAssistantWidget() {
   }, [messages]);
 
   useEffect(() => {
-    if (isOpen && !isMinimized) {
+    if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, displayedMessages, isOpen, isMinimized]);
+  }, [messages, displayedMessages, isOpen]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -139,28 +135,33 @@ export function AiAssistantWidget() {
   if (!isOpen) {
     return (
       <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={toggleOpen}
-          className="h-11 px-4 rounded-full bg-accent text-accent-foreground shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border border-accent/40 flex items-center space-x-2.5 font-bold text-xs tracking-wide cursor-pointer group"
-        >
-          {/* Dayflow Brand Logo Container */}
-          <div className="h-6 w-6 rounded-lg bg-card p-0.5 shadow-2xs flex items-center justify-center shrink-0 border border-border/60">
-            <img src="/logo.png" alt="Dayflow AI" className="h-full w-full object-contain" />
-          </div>
-          <span className="font-extrabold text-xs tracking-tight">{assistantTitle}</span>
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse"></span>
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={toggleOpen}
+                className="h-12 w-12 rounded-full bg-accent text-accent-foreground shadow-2xl hover:shadow-accent/40 hover:scale-110 transition-all duration-300 border border-accent/40 flex items-center justify-center p-0 cursor-pointer relative group"
+              >
+                {/* Dayflow Brand Logo Container */}
+                <div className="h-7 w-7 rounded-full bg-card p-1 shadow-2xs flex items-center justify-center border border-border/60 overflow-hidden">
+                  <img src="/logo.png" alt="Dayflow AI" className="h-full w-full object-contain" />
+                </div>
+                {/* Pulse Status Indicator Dot */}
+                <span className="absolute top-0.5 right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs font-bold">
+              {assistantTitle}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   }
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-      <Card
-        className={`w-[400px] sm:w-[460px] shadow-2xl border border-border bg-card text-card-foreground transition-all duration-200 overflow-hidden flex flex-col rounded-3xl ${
-          isMinimized ? 'h-[60px]' : 'h-[580px] max-h-[85vh]'
-        }`}
-      >
+      <Card className="w-[400px] sm:w-[460px] h-[580px] max-h-[85vh] shadow-2xl border border-border bg-card text-card-foreground transition-all duration-200 overflow-hidden flex flex-col rounded-3xl">
         {/* Dayflow Theme Header */}
         <div className="px-4 py-3.5 bg-accent text-accent-foreground border-b border-accent/30 flex items-center justify-between shrink-0 shadow-xs">
           <div className="flex items-center space-x-3">
@@ -180,38 +181,28 @@ export function AiAssistantWidget() {
           </div>
 
           <div className="flex items-center space-x-1">
-            {!isMinimized && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-accent-foreground/80 hover:text-accent-foreground hover:bg-accent-foreground/15 rounded-lg cursor-pointer transition-colors"
-                      onClick={clearHistory}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">Clear Conversation</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-accent-foreground/80 hover:text-accent-foreground hover:bg-accent-foreground/15 rounded-lg cursor-pointer transition-colors"
-              onClick={toggleMinimize}
-            >
-              {isMinimized ? <Maximize2 className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-accent-foreground/80 hover:text-accent-foreground hover:bg-accent-foreground/15 rounded-lg cursor-pointer transition-colors"
+                    onClick={clearHistory}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Clear Conversation</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             <Button
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-accent-foreground/80 hover:text-accent-foreground hover:bg-accent-foreground/15 rounded-lg cursor-pointer transition-colors"
               onClick={toggleOpen}
+              title="Close AI Assistant"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -219,9 +210,8 @@ export function AiAssistantWidget() {
         </div>
 
         {/* Content Body */}
-        {!isMinimized && (
-          <div className="flex-1 flex flex-col min-h-0 bg-background">
-            {/* Chat Messages */}
+        <div className="flex-1 flex flex-col min-h-0 bg-background">
+          {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((msg) => {
                 const textToRender = displayedMessages[msg.id] ?? msg.message;
@@ -357,8 +347,7 @@ export function AiAssistantWidget() {
               </div>
             </div>
           </div>
-        )}
-      </Card>
-    </div>
-  );
-}
+        </Card>
+      </div>
+    );
+  }

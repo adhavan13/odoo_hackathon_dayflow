@@ -255,21 +255,16 @@ export function AdminLeaveScheduleView() {
                     let bgClass = 'hover:bg-accent/10 hover:text-accent text-foreground';
                     let badgeTitle = `Click date ${dateStr} to manage holiday or leave`;
 
+                    const totalEmp = employees.length || 54;
+                    const leavePct = (meta.count / totalEmp) * 100;
+
                     if (meta.hasHoliday) {
                       bgClass = 'bg-accent/20 text-accent font-bold rounded-lg border border-accent/30 shadow-xs';
                       badgeTitle = `Company Holiday: ${meta.holiday}`;
-                    } else if (meta.hasLeaves) {
+                    } else if (meta.hasLeaves && leavePct >= 50) {
                       const first = meta.activeLeaves[0];
-                      if (first.status === 'Approved') {
-                        bgClass = 'bg-emerald-500 text-white font-bold rounded-lg shadow-xs';
-                        badgeTitle = `Approved: ${first.employeeName} (${first.leaveType})`;
-                      } else if (first.status === 'Pending') {
-                        bgClass = 'bg-amber-500 text-white font-bold rounded-lg shadow-xs';
-                        badgeTitle = `Pending: ${first.employeeName} (${first.leaveType})`;
-                      } else if (first.status === 'Rejected') {
-                        bgClass = 'bg-rose-500 text-white font-bold rounded-lg shadow-xs';
-                        badgeTitle = `Refused: ${first.employeeName} (${first.leaveType})`;
-                      }
+                      bgClass = 'bg-rose-500 text-white font-bold rounded-lg shadow-xs';
+                      badgeTitle = `High Leave Rate (${Math.round(leavePct)}%): ${first.employeeName} (${first.leaveType})`;
                     }
 
                     return (
@@ -289,43 +284,8 @@ export function AdminLeaveScheduleView() {
           })}
         </div>
 
-        {/* Right Legend & Public Holidays Panel */}
+        {/* Right Panel: Public Holidays & Announcements */}
         <div className="space-y-6">
-          <div className="p-5 rounded-2xl border border-border bg-card shadow-2xs space-y-3">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
-              Workforce Legend
-            </h3>
-
-            <div className="space-y-2.5 text-xs font-semibold">
-              <div className="flex items-center gap-2">
-                <span className="h-4 w-4 rounded-md bg-emerald-500 flex items-center justify-center shadow-xs">
-                  <CheckCircle2 className="h-3 w-3 text-white" />
-                </span>
-                <span className="text-foreground">Approved Leave</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="h-4 w-4 rounded-md bg-amber-500 flex items-center justify-center shadow-xs">
-                  <Clock className="h-3 w-3 text-white" />
-                </span>
-                <span className="text-foreground">Pending Action</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="h-4 w-4 rounded-md bg-rose-500 flex items-center justify-center shadow-xs">
-                  <XCircle className="h-3 w-3 text-white" />
-                </span>
-                <span className="text-foreground">Refused Application</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="h-4 w-4 rounded-md bg-accent/20 border border-accent/40 flex items-center justify-center shadow-xs">
-                  <Sparkles className="h-3 w-3 text-accent" />
-                </span>
-                <span className="text-foreground">Company Holidays</span>
-              </div>
-            </div>
-          </div>
 
           <div className="p-5 rounded-2xl border border-border bg-card shadow-2xs space-y-3">
             <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground border-b border-border pb-2 flex items-center justify-between">

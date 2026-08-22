@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { snackbar } from "@/utils/snackbar";
 import { FinancialYearSelect } from "./FinancialYearSelect";
 import { SalaryBreakupChart } from "./SalaryBreakupChart";
-import { downloadPayslipPDF, downloadAnnualEarningsCSV } from "@/utils/exportPayroll";
+import { downloadPayslipPDF, downloadAnnualEarningsPDF } from "@/utils/exportPayroll";
 import { api } from "@/utils/api";
 
 interface EmployeeSalaryHubViewProps {
@@ -408,12 +408,12 @@ export function EmployeeSalaryHubView({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  downloadAnnualEarningsCSV(employeeName, financialYear, monthlyBreakdownList)
+                  downloadAnnualEarningsPDF(employeeName, financialYear, monthlyBreakdownList)
                 }
-                className="h-8 text-xs font-bold gap-1 text-accent border-accent/40 cursor-pointer"
+                className="h-8 text-xs font-bold gap-1 text-accent border border-accent/40 bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all shadow-2xs"
               >
                 <Download className="h-3.5 w-3.5" />
-                Download CSV
+                Download PDF
               </Button>
             </div>
           </div>

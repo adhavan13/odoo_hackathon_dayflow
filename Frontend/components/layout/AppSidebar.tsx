@@ -345,13 +345,6 @@ export function AppSidebar() {
               <HelpCircle className="h-4 w-4 text-accent shrink-0" />
               <span>Help & Documentation</span>
             </button>
-            <div className="flex items-center justify-between px-2.5 pt-1 text-[11px] text-muted-foreground border-t border-sidebar-border/40">
-              <span className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Operational</span>
-              </span>
-              <span className="font-mono text-[10px]">v1.0.0</span>
-            </div>
           </div>
         ) : (
           <div className="flex justify-center">

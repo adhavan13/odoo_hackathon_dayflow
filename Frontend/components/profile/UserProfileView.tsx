@@ -148,21 +148,32 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
   const [newSkill, setNewSkill] = useState('');
   const [newCert, setNewCert] = useState('');
 
-  // Salary Calculator State (Admin Configurable - default empty/unconfigured)
+  // Salary Calculator & Leave Quota State (Admin Configurable - default 50000 / month)
   const [monthlyWage, setMonthlyWage] = useState<number | ''>(
-    employeeData?.monthlyWage ?? user?.monthlyWage ?? ''
+    employeeData?.monthlyWage ?? user?.monthlyWage ?? 50000
   );
   const [workingDaysPerWeek, setWorkingDaysPerWeek] = useState<number | ''>(
-    employeeData?.workingDaysPerWeek ?? user?.workingDaysPerWeek ?? ''
+    employeeData?.workingDaysPerWeek ?? user?.workingDaysPerWeek ?? 5
   );
   const [breakTimeHours, setBreakTimeHours] = useState<number | ''>(
-    employeeData?.breakTimeHours ?? user?.breakTimeHours ?? ''
+    employeeData?.breakTimeHours ?? user?.breakTimeHours ?? 1
   );
   const [pfRate, setPfRate] = useState<number | ''>(
-    employeeData?.pfRate ?? user?.pfRate ?? ''
+    employeeData?.pfRate ?? user?.pfRate ?? 12
   );
   const [profTax, setProfTax] = useState<number | ''>(
-    employeeData?.profTax ?? user?.profTax ?? ''
+    employeeData?.profTax ?? user?.profTax ?? 200
+  );
+
+  // Employee Annual Leave Policy & Quota Limits (Admin Configurable)
+  const [paidLeaveLimit, setPaidLeaveLimit] = useState<number | ''>(
+    employeeData?.paidLeaveLimit ?? user?.paidLeaveLimit ?? 24
+  );
+  const [sickLeaveLimit, setSickLeaveLimit] = useState<number | ''>(
+    employeeData?.sickLeaveLimit ?? user?.sickLeaveLimit ?? 12
+  );
+  const [unpaidLeaveLimit, setUnpaidLeaveLimit] = useState<number | ''>(
+    employeeData?.unpaidLeaveLimit ?? user?.unpaidLeaveLimit ?? 10
   );
 
   // Parse numerical values safely
@@ -175,16 +186,16 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
   // Automatic Salary Component Calculations based on Monthly Wage
   const yearlyWage = numWage * 12;
   const basicSalary = numWage * 0.5; // 50% of Wage
-  const hra = basicSalary * 0.5; // 50% of Basic
+  const hra = basicSalary * 0.5; // 50% of Basic (25% of Wage)
   const standardAllowance = numWage > 0 ? 4167 : 0;
-  const performanceBonus = basicSalary * 0.0833;
-  const lta = basicSalary * 0.0833;
+  const performanceBonus = basicSalary * 0.0833; // 8.33% of Basic
+  const lta = basicSalary * 0.0833; // 8.333% of Basic
 
   const itemizedTotal = basicSalary + hra + standardAllowance + performanceBonus + lta;
   const fixedAllowance = Math.max(0, numWage - itemizedTotal);
   const fixedAllowancePercentage = numWage > 0 ? ((fixedAllowance / numWage) * 100).toFixed(2) : '0.00';
 
-  // PF Calculations
+  // PF Calculations (12% of Basic)
   const employeePf = basicSalary * (numPfRate / 100);
   const employerPf = basicSalary * (numPfRate / 100);
 
@@ -286,6 +297,9 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
         breakTimeHours: typeof breakTimeHours === 'number' ? breakTimeHours : Number(breakTimeHours) || 0,
         pfRate: typeof pfRate === 'number' ? pfRate : Number(pfRate) || 0,
         profTax: typeof profTax === 'number' ? profTax : Number(profTax) || 0,
+        paidLeaveLimit: typeof paidLeaveLimit === 'number' ? paidLeaveLimit : Number(paidLeaveLimit) || 24,
+        sickLeaveLimit: typeof sickLeaveLimit === 'number' ? sickLeaveLimit : Number(sickLeaveLimit) || 12,
+        unpaidLeaveLimit: typeof unpaidLeaveLimit === 'number' ? unpaidLeaveLimit : Number(unpaidLeaveLimit) || 10,
       };
 
       const response = await api.patch('/auth/me', payload);
@@ -887,6 +901,73 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                 <span className="text-[11px] font-semibold text-accent bg-card px-2 py-0.5 rounded border border-accent/20">
                   Total Components = Defined Wage
                 </span>
+              </div>
+            )}
+
+            {/* Employee Annual Leave Quota Limits (Admin Configuration) */}
+            {isAdmin && (
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-foreground flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-accent" />
+                      Employee Annual Leave Policy & Quota Limits (Admin Configuration)
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Define specific annual leave allowances for this employee. Leave requests exceeding these quotas will require admin approval.
+                    </p>
+                  </div>
+                  <span className="text-xs font-extrabold text-accent bg-accent/15 px-3 py-1 rounded-full border border-accent/30 shrink-0">
+                    Annual Quota Config
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 text-xs">
+                  <div className="space-y-1.5 bg-muted/20 p-3 rounded-xl border border-border/60">
+                    <Label className="text-xs font-bold text-foreground">Paid Leave Limit</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="24"
+                        value={paidLeaveLimit}
+                        onChange={(e) => setPaidLeaveLimit(e.target.value === '' ? '' : Number(e.target.value))}
+                        disabled={isReadOnly}
+                        className="h-8 text-xs font-bold font-mono bg-card disabled:opacity-80"
+                      />
+                      <span className="text-muted-foreground font-semibold">Days / Year</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 bg-muted/20 p-3 rounded-xl border border-border/60">
+                    <Label className="text-xs font-bold text-foreground">Sick Leave Limit</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="12"
+                        value={sickLeaveLimit}
+                        onChange={(e) => setSickLeaveLimit(e.target.value === '' ? '' : Number(e.target.value))}
+                        disabled={isReadOnly}
+                        className="h-8 text-xs font-bold font-mono bg-card disabled:opacity-80"
+                      />
+                      <span className="text-muted-foreground font-semibold">Days / Year</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 bg-muted/20 p-3 rounded-xl border border-border/60">
+                    <Label className="text-xs font-bold text-foreground">Unpaid Leave Limit</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="10"
+                        value={unpaidLeaveLimit}
+                        onChange={(e) => setUnpaidLeaveLimit(e.target.value === '' ? '' : Number(e.target.value))}
+                        disabled={isReadOnly}
+                        className="h-8 text-xs font-bold font-mono bg-card disabled:opacity-80"
+                      />
+                      <span className="text-muted-foreground font-semibold">Days / Year</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
