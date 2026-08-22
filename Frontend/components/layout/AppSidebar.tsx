@@ -53,10 +53,6 @@ const adminNavConfig: NavGroup[] = [
         title: "All Employees",
         href: "/admin/employee-management/all-employees",
       },
-      {
-        title: "Employee Profiles",
-        href: "/admin/employee-management/employee-profiles",
-      },
       { title: "Departments", href: "/admin/employee-management/departments" },
     ],
   },
@@ -65,28 +61,25 @@ const adminNavConfig: NavGroup[] = [
     icon: Clock,
     items: [
       { title: "Daily Attendance", href: "/admin/attendance/daily-attendance" },
-      { title: "Attendance Reports", href: "/admin/attendance/reports" },
     ],
   },
   {
     title: "Leave Management",
     icon: CalendarDays,
     items: [
-      { title: "Leave Requests", href: "/admin/leave-management/requests" },
+      { title: "Leave Requests & Approvals", href: "/admin/leave-management" },
       { title: "Leave Calendar", href: "/admin/leave-management/calendar" },
-      { title: "Leave Reports", href: "/admin/leave-management/reports" },
     ],
   },
   {
     title: "Payroll & Salary",
     icon: Banknote,
-    items: [{ title: "Payroll", href: "/admin/payroll" }],
+    items: [{ title: "Payroll & Disbursements", href: "/admin/payroll" }],
   },
   {
-    title: 'Notifications',
+    title: "Notifications",
     icon: Bell,
     items: [
-      { title: "Alerts", href: "/admin/notifications/alerts" },
       { title: "Announcements", href: "/admin/notifications/announcements" },
     ],
   },
@@ -94,7 +87,7 @@ const adminNavConfig: NavGroup[] = [
     title: "Settings",
     icon: Settings,
     items: [
-      { title: 'Organization & System Settings', href: '/admin/settings/organization' },
+      { title: "Organization & System Settings", href: "/admin/settings/organization" },
     ],
   },
 ];
@@ -105,7 +98,6 @@ const employeeNavConfig: NavGroup[] = [
     icon: LayoutDashboard,
     items: [
       { title: "Overview", href: "/employee/dashboard/overview" },
-      { title: "Recent Activity", href: "/employee/dashboard/recent-activity" },
     ],
   },
   {
@@ -116,8 +108,6 @@ const employeeNavConfig: NavGroup[] = [
         title: "Personal Information",
         href: "/employee/profile/personal-info",
       },
-      { title: "Job Details", href: "/employee/profile/job-details" },
-      { title: "Documents", href: "/employee/profile/documents" },
     ],
   },
   {
@@ -131,22 +121,19 @@ const employeeNavConfig: NavGroup[] = [
     title: "Leave & Time-Off",
     icon: CalendarDays,
     items: [
-      { title: "Apply for Leave", href: "/employee/leave/apply" },
-      { title: "My Leave Requests", href: "/employee/leave/requests" },
-      { title: "Leave Balance", href: "/employee/leave/balance" },
+      { title: "Leave Requests & Apply", href: "/employee/leave" },
       { title: "Leave Calendar", href: "/employee/leave/calendar" },
     ],
   },
   {
     title: "Payroll & Salary",
     icon: Banknote,
-    items: [{ title: "My Salary", href: "/employee/salary" }],
+    items: [{ title: "My Salary & Payslips", href: "/employee/salary" }],
   },
   {
     title: "Notifications",
     icon: Bell,
     items: [
-      { title: "Alerts", href: "/employee/notifications/alerts" },
       { title: "Announcements", href: "/employee/notifications/announcements" },
     ],
   },
@@ -263,8 +250,9 @@ export function AppSidebar() {
         {navConfig.map((group) => {
           const GroupIcon = group.icon;
           const isOpen = openGroups.includes(group.title);
-          const hasActiveChild = group.items.some(
-            (item) => pathname === item.href,
+          const hasActiveChild = group.items.some((item) =>
+            pathname === item.href ||
+            (item.href !== "/" && pathname.startsWith(item.href + "/")),
           );
 
           return (
@@ -272,9 +260,15 @@ export function AppSidebar() {
               {/* Group Title Button */}
               <button
                 type="button"
-                onClick={() => toggleGroup(group.title)}
+                onClick={() => {
+                  if (isCollapsed && group.items.length > 0) {
+                    router.push(group.items[0].href);
+                  } else {
+                    toggleGroup(group.title);
+                  }
+                }}
                 className={cn(
-                  "w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors",
+                  "w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer",
                   hasActiveChild
                     ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
                     : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
@@ -308,7 +302,9 @@ export function AppSidebar() {
               {!isCollapsed && isOpen && (
                 <div className="pl-8 pr-1 space-y-1 border-l border-sidebar-border/60 ml-4 my-1">
                   {group.items.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== "/" && pathname.startsWith(item.href + "/"));
                     return (
                       <Link
                         key={item.href}

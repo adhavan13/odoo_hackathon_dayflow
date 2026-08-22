@@ -1,101 +1,49 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { Pencil, Save, UserRound } from "lucide-react";
-import { api } from "@/utils/api";
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { PageContainer } from "@/components/ui/page-container";
+import { EmployeeSalaryHubView } from "@/components/payroll/EmployeeSalaryHubView";
+import { ArrowLeft, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Breakdown,
-  PayrollError,
-  PayrollLoading,
-  PayrollShell,
-  SalaryStructure,
-  StructureFields,
-} from "@/components/payroll/payroll-ui";
+import { useEmployeeStore } from "@/store";
 
 export default function AdminPayrollEmployeePage() {
+  const router = useRouter();
   const { id } = useParams<{ id: string }>();
-  const [structure, setStructure] = useState<SalaryStructure | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await api.get("/payroll/structure", {
-          params: { employeeId: id },
-        });
-        setStructure(response.data as SalaryStructure);
-      } catch (requestError: any) {
-        setError(requestError.message || "Unable to load salary structure.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (id) void load();
-  }, [id]);
-  const save = async () => {
-    if (!structure) return;
-    try {
-      const response = await api.put("/payroll/structure", {
-        ...structure,
-        employeeId: id,
-      });
-      setStructure(response.data as SalaryStructure);
-      setEditing(false);
-    } catch (requestError: any) {
-      setError(requestError.message || "Unable to update salary structure.");
-    }
+  const { employees } = useEmployeeStore();
+
+  const emp = employees.find((e) => e.id === id || e.loginId === id) || {
+    id: id || "usr_emp_02",
+    name: "Alex Rivera",
   };
+
   return (
-    <PayrollShell
-      title="Employee Payroll"
-      subtitle="Review and manage salary structure"
+    <PageContainer
+      title={`Payroll Details — ${emp.name}`}
+      subtitle={`Comprehensive salary structure, payslips, annual YTD breakdown, and documents for ${emp.name} (${emp.id})`}
+      badge="Admin / HR Payroll View"
     >
-      <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/15 text-accent">
-            <UserRound className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="font-bold text-foreground">Employee payroll</p>
-            <p className="text-xs text-muted-foreground">Employee ID: {id}</p>
-          </div>
-        </div>
-        {!editing ? (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
           <Button
             variant="outline"
-            onClick={() => setEditing(true)}
-            className="gap-2"
+            size="sm"
+            onClick={() => router.push("/admin/payroll")}
+            className="h-8 text-xs font-bold gap-1.5 cursor-pointer"
           >
-            <Pencil className="h-4 w-4" />
-            Edit Salary Structure
+            <ArrowLeft className="h-4 w-4" />
+            Back to Payroll Batch List
           </Button>
-        ) : (
-          <Button onClick={() => void save()} className="gap-2">
-            <Save className="h-4 w-4" />
-            Save Structure
-          </Button>
-        )}
+
+          <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground font-mono">
+            <UserCheck className="h-4 w-4 text-accent" />
+            Employee ID: <span className="text-foreground">{emp.id}</span>
+          </div>
+        </div>
+
+        <EmployeeSalaryHubView employeeId={emp.id} employeeName={emp.name} />
       </div>
-      {loading ? (
-        <PayrollLoading />
-      ) : error ? (
-        <PayrollError message={error} />
-      ) : structure ? (
-        <>
-          <section className="rounded-xl border border-border bg-card p-5 shadow-2xs">
-            <h2 className="mb-4 text-sm font-bold">Salary Structure</h2>
-            <StructureFields
-              structure={structure}
-              setStructure={setStructure}
-              readOnly={!editing}
-            />
-          </section>
-          <Breakdown structure={structure} />
-        </>
-      ) : null}
-    </PayrollShell>
+    </PageContainer>
   );
 }

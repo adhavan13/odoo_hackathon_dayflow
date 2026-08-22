@@ -335,6 +335,21 @@ export default function AdminDailyAttendancePage() {
               size="sm"
               className="w-36 text-xs h-8"
             />
+
+            {(search || departmentFilter !== "all" || statusFilter !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch("");
+                  setDepartmentFilter("all");
+                  setStatusFilter("all");
+                }}
+                className="h-8 px-2 text-xs font-bold text-accent hover:bg-accent/10 cursor-pointer"
+              >
+                Reset Filters
+              </Button>
+            )}
           </div>
         </div>
 

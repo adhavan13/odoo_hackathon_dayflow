@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { PageContainer } from '@/components/ui/page-container';
-import { useEmployeeStore, Employee } from '@/store';
-import { snackbar } from '@/utils/snackbar';
+import { useLeaveStore } from '@/store/useLeaveStore';
 import {
   Building2,
   ShieldCheck,
@@ -20,14 +19,22 @@ import {
   Users,
   Edit2,
   Key,
+  Palmtree,
+  Stethoscope,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { Employee } from '@/store';
 
 export default function OrganizationSettingsPage() {
   const { employees, updateEmployee } = useEmployeeStore();
+  const { paidLeaveLimit, sickLeaveLimit, updateLeaveLimits } = useLeaveStore();
+
+  const [tempPaidLimit, setTempPaidLimit] = useState(paidLeaveLimit);
+  const [tempSickLimit, setTempSickLimit] = useState(sickLeaveLimit);
 
   // Organization Details Form State
   const [orgDetails, setOrgDetails] = useState({
@@ -218,7 +225,81 @@ export default function OrganizationSettingsPage() {
           </form>
         </div>
 
-        {/* SECTION 2: EMPLOYEE ROLES & ACCESS MANAGEMENT TABLE */}
+        {/* SECTION 2: EMPLOYEE LEAVE QUOTA & POLICY LIMITS */}
+        <div className="rounded-3xl border border-border bg-card p-6 md:p-8 shadow-2xs space-y-6">
+          <div className="flex items-center gap-3 border-b border-border/60 pb-4">
+            <div className="h-10 w-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold border border-emerald-500/25">
+              <CalendarDays className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-foreground">Employee Annual Leave Quota & Policy Limits</h2>
+              <p className="text-xs text-muted-foreground">Define annual limits for Paid Time Off and Sick Leaves allocated to all employees across the organization</p>
+            </div>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              updateLeaveLimits(Number(tempPaidLimit), Number(tempSickLimit));
+              snackbar.success('Annual Paid & Sick Leave Limits updated successfully!');
+            }}
+            className="space-y-5"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 rounded-2xl border border-accent/30 bg-accent/5 space-y-3">
+                <div className="flex items-center gap-2 text-accent font-extrabold text-sm">
+                  <Palmtree className="h-4 w-4" />
+                  Paid Time Off (PTO) Limit
+                </div>
+                <p className="text-xs text-muted-foreground">Annual number of paid leave days granted to each employee per year.</p>
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-foreground">Annual Paid Leaves (Days / Year)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={365}
+                    value={tempPaidLimit}
+                    onChange={(e) => setTempPaidLimit(Number(e.target.value))}
+                    className="h-10 text-xs font-bold font-mono bg-card"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-extrabold text-sm">
+                  <Stethoscope className="h-4 w-4" />
+                  Sick Leave Policy Limit
+                </div>
+                <p className="text-xs text-muted-foreground">Annual quota for medical / sick leave days available to each employee.</p>
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-foreground">Annual Sick Leaves (Days / Year)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={365}
+                    value={tempSickLimit}
+                    onChange={(e) => setTempSickLimit(Number(e.target.value))}
+                    className="h-10 text-xs font-bold font-mono bg-card"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-border/60">
+              <Button
+                type="submit"
+                className="bg-accent text-accent-foreground hover:bg-accent/90 font-extrabold text-xs px-6 h-10 gap-2 cursor-pointer shadow-md"
+              >
+                <Save className="h-4 w-4" />
+                Update Leave Limits & Policy
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        {/* SECTION 3: EMPLOYEE ROLES & ACCESS MANAGEMENT TABLE */}
         <div className="rounded-3xl border border-border bg-card p-6 md:p-8 shadow-2xs space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-4">
             <div className="flex items-center gap-3">
