@@ -247,10 +247,10 @@ export function AppHeader() {
                 className="flex items-center gap-2 pl-2 outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-accent rounded-full p-1 transition-colors hover:bg-muted/50"
               >
                 <div className="h-8 w-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
-                  {user?.logo || user?.avatarUrl ? (
-                    <img src={user.logo || user.avatarUrl} alt={user?.name || 'User'} className="h-full w-full object-cover" />
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={user?.name || 'User'} className="h-full w-full object-cover" />
                   ) : (
-                    user?.name?.substring(0, 2).toUpperCase() || 'US'
+                    <User className="h-4 w-4 text-accent" />
                   )}
                 </div>
                 <div className="hidden sm:flex flex-col text-left">

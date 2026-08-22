@@ -26,6 +26,7 @@ export const signupUser = asyncHandler(async (req: Request, res: Response) => {
     confirmPassword,
     logo,
   );
+  console.log("Signup result:", result); // Debugging line
   return res.status(201).json({
     ...result,
   });

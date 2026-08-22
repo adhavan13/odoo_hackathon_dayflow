@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
   getEmployees,
   getEmployeeById,
   createEmployeeController,
   updateEmployeeProfile,
-} from '../controllers/employee.controller';
-import { authenticateToken } from '../middlewares/auth.middleware';
+} from "../controllers/employee.controller";
+import { authenticateToken } from "../middlewares/auth.middleware";
 
 const router = Router();
 

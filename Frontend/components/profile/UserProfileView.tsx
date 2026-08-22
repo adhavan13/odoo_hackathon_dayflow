@@ -41,7 +41,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
 
   // Avatar Upload State
   const [avatarUrl, setAvatarUrl] = useState(
-    employeeData?.avatarUrl || user?.avatarUrl || user?.logo || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
+    employeeData?.avatarUrl || user?.avatarUrl || ''
   );
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -157,11 +157,10 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
         name: profileData.name,
         phone: profileData.mobile,
         avatarUrl,
-        logo: avatarUrl,
       });
 
       if (user && token) {
-        setAuth({ ...user, name: profileData.name, avatarUrl, logo: avatarUrl }, token);
+        setAuth({ ...user, name: profileData.name, avatarUrl }, token);
       }
 
       snackbar.success('Profile changes saved successfully to database!');
@@ -181,8 +180,12 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
           <div className="flex items-center gap-5">
             {/* Avatar Circle with Edit Pencil Icon */}
             <div className="relative group shrink-0">
-              <div className="h-24 w-24 rounded-full border-2 border-accent/40 bg-muted overflow-hidden shadow-md">
-                <img src={avatarUrl} alt={profileData.name} className="h-full w-full object-cover" />
+              <div className="h-24 w-24 rounded-full border-2 border-accent/40 bg-accent/20 flex items-center justify-center overflow-hidden shadow-md">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={profileData.name} className="h-full w-full object-cover" />
+                ) : (
+                  <UserIcon className="h-12 w-12 text-accent" />
+                )}
               </div>
               <label
                 htmlFor="avatar-upload-profile"
