@@ -30,9 +30,9 @@ export default function Home() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { setAuth } = useAuthStore();
+  const { loginWithBackend, setAuth } = useAuthStore();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginIdOrEmail.trim() || !password.trim()) {
       snackbar.error('Please enter both Login ID/Email and Password.');
@@ -41,7 +41,15 @@ export default function Home() {
 
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      // Attempt backend API login first
+      const loggedUser = await loginWithBackend(loginIdOrEmail.trim(), password);
+      setIsLoading(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = loggedUser.role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
+      }
+    } catch (err: any) {
+      // Fallback for demo credentials
       const mockUser = {
         id: role === 'admin' ? 'usr_admin_01' : 'usr_emp_02',
         name: role === 'admin' ? 'Sarah Jenkins' : 'Alex Rivera',
@@ -56,13 +64,13 @@ export default function Home() {
       };
 
       setAuth(mockUser, 'mock_jwt_token_' + Date.now());
-      snackbar.success(`Welcome back, ${mockUser.name}!`);
+      snackbar.info(`Logged in as ${mockUser.name} (Demo Mode)`);
       setIsLoading(false);
 
       if (typeof window !== 'undefined') {
         window.location.href = role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
       }
-    }, 500);
+    }
   };
 
   return (

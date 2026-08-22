@@ -16,7 +16,7 @@ export interface RequestOptions extends RequestInit {
 }
 
 const getBaseUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+  return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 };
 
 const getAuthToken = (): string | null => {
