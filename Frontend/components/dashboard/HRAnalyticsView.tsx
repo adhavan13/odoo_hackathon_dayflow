@@ -1,20 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
   TrendingUp,
   Calendar,
   CheckCircle2,
   Clock,
-  AlertCircle,
-  BarChart2,
   PieChart as PieChartIcon,
   Activity,
-  RefreshCw,
-  Sparkles,
-  Layers,
-  Filter,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -27,7 +22,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from 'recharts';
 import { useLeaveStore } from '@/store/useLeaveStore';
 import { useEmployeeStore } from '@/store';
@@ -43,6 +37,27 @@ const dailyActivityVolume = [
   { date: 'Aug 17', present: 48, onLeave: 3, halfDay: 1, late: 1, absent: 1 },
   { date: 'Aug 21', present: 50, onLeave: 2, halfDay: 1, late: 0, absent: 1 },
 ];
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
+  },
+};
 
 export function HRAnalyticsView() {
   const { leaves, fetchLeaves } = useLeaveStore();
@@ -76,11 +91,21 @@ export function HRAnalyticsView() {
   ];
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6"
+    >
       {/* 1. TOP SUMMARY STAT CARDS ROW */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Workforce */}
-        <div className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-2xs">
+        <motion.div
+          variants={cardVariants}
+          whileHover={{ y: -3, scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-2xs cursor-default"
+        >
           <div>
             <p className="text-xs font-semibold text-muted-foreground">Total Workforce</p>
             <p className="text-2xl font-black text-foreground font-mono mt-1">{employees.length || 54}</p>
@@ -91,10 +116,15 @@ export function HRAnalyticsView() {
           <div className="h-11 w-11 rounded-xl bg-accent/15 text-accent flex items-center justify-center shrink-0">
             <Users className="h-5 w-5" />
           </div>
-        </div>
+        </motion.div>
 
         {/* Present Today */}
-        <div className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-2xs">
+        <motion.div
+          variants={cardVariants}
+          whileHover={{ y: -3, scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-2xs cursor-default"
+        >
           <div>
             <p className="text-xs font-semibold text-muted-foreground">Present Today</p>
             <p className="text-2xl font-black text-foreground font-mono mt-1">48 <span className="text-xs font-medium text-muted-foreground">(88.8%)</span></p>
@@ -105,10 +135,15 @@ export function HRAnalyticsView() {
           <div className="h-11 w-11 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
             <CheckCircle2 className="h-5 w-5" />
           </div>
-        </div>
+        </motion.div>
 
         {/* On Approved Leave */}
-        <div className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-2xs">
+        <motion.div
+          variants={cardVariants}
+          whileHover={{ y: -3, scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-2xs cursor-default"
+        >
           <div>
             <p className="text-xs font-semibold text-muted-foreground">On Approved Leave</p>
             <p className="text-2xl font-black text-foreground font-mono mt-1">{approvedCount || 4}</p>
@@ -119,10 +154,15 @@ export function HRAnalyticsView() {
           <div className="h-11 w-11 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
             <Calendar className="h-5 w-5" />
           </div>
-        </div>
+        </motion.div>
 
         {/* Avg Working Hours */}
-        <div className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-2xs">
+        <motion.div
+          variants={cardVariants}
+          whileHover={{ y: -3, scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between shadow-2xs cursor-default"
+        >
           <div>
             <p className="text-xs font-semibold text-muted-foreground">Avg Shift Hours</p>
             <p className="text-2xl font-black text-foreground font-mono mt-1">8.4 <span className="text-xs font-medium text-muted-foreground">hrs/day</span></p>
@@ -133,13 +173,16 @@ export function HRAnalyticsView() {
           <div className="h-11 w-11 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
             <Clock className="h-5 w-5" />
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* 2. MIDDLE ROW - PIE & DONUT CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* LEFT CARD: Departmental Workforce Share */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4 flex flex-col justify-between">
+        <motion.div
+          variants={cardVariants}
+          className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4 flex flex-col justify-between"
+        >
           <div className="border-b border-border pb-3 w-full text-left">
             <h3 className="font-extrabold text-sm text-foreground flex items-center gap-2">
               <Users className="h-4 w-4 text-accent" />
@@ -185,7 +228,12 @@ export function HRAnalyticsView() {
             {/* Right Side: Data Legend List */}
             <div className="sm:col-span-7 space-y-2.5 text-xs">
               {departmentShareData.map((dept) => (
-                <div key={dept.name} className="flex items-center justify-between font-medium gap-3">
+                <motion.div
+                  key={dept.name}
+                  whileHover={{ x: 3 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex items-center justify-between font-medium gap-3 cursor-default"
+                >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="h-3 w-3 rounded-xs shrink-0" style={{ backgroundColor: dept.color }} />
                     <span className="font-bold text-foreground truncate">{dept.name}</span>
@@ -194,14 +242,17 @@ export function HRAnalyticsView() {
                     <span className="font-mono font-extrabold text-foreground">{dept.percentage}</span>
                     <span className="text-muted-foreground font-mono text-[11px]">({dept.runs})</span>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* RIGHT CARD: Leave Request Statuses Donut Chart */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4 flex flex-col justify-between">
+        <motion.div
+          variants={cardVariants}
+          className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4 flex flex-col justify-between"
+        >
           <div className="border-b border-border pb-3 w-full text-left">
             <h3 className="font-extrabold text-sm text-foreground flex items-center gap-2">
               <PieChartIcon className="h-4 w-4 text-accent" />
@@ -247,7 +298,12 @@ export function HRAnalyticsView() {
             {/* Right Side: Data Legend List */}
             <div className="sm:col-span-7 space-y-2.5 text-xs">
               {outcomeShareData.map((out) => (
-                <div key={out.name} className="flex items-center justify-between font-medium gap-3">
+                <motion.div
+                  key={out.name}
+                  whileHover={{ x: 3 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex items-center justify-between font-medium gap-3 cursor-default"
+                >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="h-3 w-3 rounded-xs shrink-0" style={{ backgroundColor: out.color }} />
                     <span className="font-bold text-foreground truncate">{out.name}</span>
@@ -256,15 +312,18 @@ export function HRAnalyticsView() {
                     <span className="font-mono font-extrabold text-foreground">{out.percentage}</span>
                     <span className="text-muted-foreground font-mono text-[11px]">({out.count})</span>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* 3. BOTTOM ROW - FULL-WIDTH ATTENDANCE VOLUME BAR / LINE CHART */}
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4">
+      <motion.div
+        variants={cardVariants}
+        className="rounded-2xl border border-border bg-card p-6 shadow-2xs space-y-4"
+      >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border pb-4">
           <div>
             <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
@@ -276,18 +335,25 @@ export function HRAnalyticsView() {
             </p>
           </div>
 
-          {/* Daily | Weekly | Monthly Pills */}
-          <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border">
+          {/* Daily | Weekly | Monthly Pills with Motion Indicator */}
+          <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border relative">
             {(['daily', 'weekly', 'monthly'] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setTimeWindow(mode)}
-                className={`px-3 py-1 text-xs font-bold capitalize rounded-lg transition-all cursor-pointer ${
+                className={`relative px-3 py-1 text-xs font-bold capitalize rounded-lg transition-colors cursor-pointer z-10 ${
                   timeWindow === mode
-                    ? 'bg-card text-accent shadow-xs border border-accent/20'
+                    ? 'text-accent'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
+                {timeWindow === mode && (
+                  <motion.div
+                    layoutId="timeWindowPill"
+                    className="absolute inset-0 bg-card rounded-lg border border-accent/30 shadow-2xs -z-10"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
                 {mode}
               </button>
             ))}
@@ -342,7 +408,7 @@ export function HRAnalyticsView() {
             <span className="text-foreground">Absent</span>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
