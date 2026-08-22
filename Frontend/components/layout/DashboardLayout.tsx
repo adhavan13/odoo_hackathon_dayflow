@@ -4,6 +4,7 @@ import React from 'react';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
 import { Toaster } from '@/components/ui/sonner';
+import { AiAssistantWidget } from '@/components/ai-assistant/AiAssistantWidget';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </main>
       </div>
+      <AiAssistantWidget />
       <Toaster position="top-right" closeButton />
     </div>
   );

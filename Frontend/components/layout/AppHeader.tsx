@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, Bell, Search, ShieldCheck, UserCheck, User, LogOut } from 'lucide-react';
+import { Menu, Bell, Search, ShieldCheck, UserCheck, User, LogOut, Bot, Sparkles } from 'lucide-react';
 import { useAuthStore, useSidebarStore, useAppStore } from '@/store';
+import { useAiAssistantStore } from '@/store/useAiAssistantStore';
 import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ export function AppHeader() {
   const { role, user, logout } = useAuthStore();
   const { toggleMobileOpen } = useSidebarStore();
   const { unreadCount } = useAppStore();
+  const { toggleOpen: toggleAiAssistant } = useAiAssistantStore();
 
   const getBreadcrumbTitle = (): string => {
     const segments = pathname.split('/').filter(Boolean);
@@ -83,7 +85,19 @@ export function AppHeader() {
 
       {/* Right Section: Actions & Profile Dropdown */}
       <div className="flex items-center gap-2 md:gap-3">
-        {/* Static Role View Badge (No switching inside portal) */}
+        {/* AI Assistant Quick Launcher Button */}
+        <Button
+          onClick={toggleAiAssistant}
+          variant="outline"
+          size="sm"
+          className="hidden sm:flex items-center gap-1.5 h-9 bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-indigo-500/10 border-violet-500/30 hover:border-violet-500/60 text-xs font-medium transition-all duration-200"
+        >
+          <Bot className="h-4 w-4 text-violet-500" />
+          <span>Ask AI</span>
+          <Sparkles className="h-3 w-3 text-amber-500" />
+        </Button>
+
+        {/* Static Role View Badge */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
           {role === 'admin' ? (
             <>

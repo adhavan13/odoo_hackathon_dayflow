@@ -6,6 +6,8 @@ import { ShieldCheck, UserCheck, ArrowRight, Sparkles, Building2 } from 'lucide-
 import { useAuthStore } from '@/store';
 import { Button } from '@/components/ui/button';
 
+export type Section = 'overview' | 'pipeline' | 'deals' | 'team' | 'reports' | 'customers' | 'forecasting' | 'settings';
+
 export default function Home() {
   const { switchRole } = useAuthStore();
 
