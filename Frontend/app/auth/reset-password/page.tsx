@@ -73,7 +73,7 @@ function ResetPasswordForm() {
         try {
           const loggedUser = await loginWithBackend(email.trim(), password);
           setTimeout(() => {
-            window.location.href = loggedUser.role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
+            window.location.href = loggedUser.role === 'admin' ? '/admin/dashboard/employees' : '/employee/dashboard/overview';
           }, 800);
           return;
         } catch {

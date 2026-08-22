@@ -81,6 +81,7 @@ export function AppHeader() {
   const { role, user, logout } = useAuthStore();
   const { toggleMobileOpen } = useSidebarStore();
   const { announcements, fetchAnnouncements } = useAnnouncementStore();
+  const { unreadCount } = useAppStore();
 
   useEffect(() => {
     fetchAnnouncements();
@@ -200,17 +201,21 @@ export function AppHeader() {
 
         {/* Right Section: Actions & Profile Dropdown */}
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0">
-          {/* Systray Check IN / Check OUT Widget (Hidden on tiny mobile screens for clean layout) */}
-          <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 p-1 px-2 sm:px-2.5 rounded-xl border border-border bg-card shadow-2xs shrink-0">
-            <span
-              className={`h-2.5 w-2.5 rounded-full shrink-0 transition-colors ${
-                isCheckedIn ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
-              }`}
-              title={isCheckedIn ? `Checked IN since ${checkInTime || '09:00 AM'}` : 'Checked OUT'}
-            />
+          {/* Systray Check IN / Check OUT Widget */}
+          <div className="hidden sm:flex items-center gap-2 p-1 pl-2.5 pr-1 rounded-full border border-border/80 bg-muted/30 backdrop-blur shadow-2xs shrink-0">
+            <div className="flex items-center gap-1.5" title={isCheckedIn ? `Checked IN since ${checkInTime || '09:00 AM'}` : 'Checked OUT'}>
+              <span
+                className={`h-2.5 w-2.5 rounded-full shrink-0 transition-colors ${
+                  isCheckedIn ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'
+                }`}
+              />
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider hidden md:inline">
+                {isCheckedIn ? 'Online' : 'Offline'}
+              </span>
+            </div>
 
             {isCheckedIn ? (
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 pl-0.5">
                 <div className="hidden sm:block">
                   <LiveShiftTimer timestamp={checkInTimestamp} />
                 </div>
@@ -218,7 +223,7 @@ export function AppHeader() {
                   size="sm"
                   variant="outline"
                   onClick={() => setIsCheckOutModalOpen(true)}
-                  className="h-7 text-[11px] sm:text-xs px-2 sm:px-2.5 font-bold border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:text-white cursor-pointer transition-all gap-1"
+                  className="h-7 text-[11px] sm:text-xs px-2.5 sm:px-3 font-extrabold rounded-full border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:text-white cursor-pointer transition-all shadow-2xs gap-1"
                 >
                   Check OUT →
                 </Button>
@@ -227,7 +232,7 @@ export function AppHeader() {
               <Button
                 size="sm"
                 onClick={checkIn}
-                className="h-7 text-[11px] sm:text-xs px-2 sm:px-2.5 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer gap-1 font-bold"
+                className="h-7 text-[11px] sm:text-xs px-3 sm:px-3.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-xs gap-1 font-extrabold transition-all"
               >
                 Check IN →
               </Button>

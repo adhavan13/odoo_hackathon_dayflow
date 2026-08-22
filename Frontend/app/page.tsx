@@ -46,7 +46,7 @@ export default function Home() {
       const loggedUser = await loginWithBackend(loginIdOrEmail.trim(), password);
       setIsLoading(false);
       if (typeof window !== 'undefined') {
-        window.location.href = loggedUser.role === 'admin' ? '/admin/dashboard/overview' : '/employee/dashboard/overview';
+        window.location.href = loggedUser.role === 'admin' ? '/admin/dashboard/employees' : '/employee/dashboard/overview';
       }
     } catch (err: any) {
       setIsLoading(false);

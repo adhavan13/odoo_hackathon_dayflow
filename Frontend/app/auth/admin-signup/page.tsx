@@ -156,7 +156,7 @@ export default function AdminSignUpPage() {
       setIsLoading(false);
 
       if (typeof window !== 'undefined') {
-        window.location.href = '/admin/dashboard/overview';
+        window.location.href = '/admin/dashboard/employees';
       }
     } catch (err) {
       setIsLoading(false);

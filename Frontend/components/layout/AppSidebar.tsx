@@ -41,7 +41,7 @@ const adminNavConfig: NavGroup[] = [
     title: "Dashboard",
     icon: LayoutDashboard,
     items: [
-      { title: "Overview", href: "/admin/dashboard/overview" },
+      { title: "Employees", href: "/admin/dashboard/employees" },
       { title: "HR Analytics", href: "/admin/dashboard/hr-analytics" },
     ],
   },
