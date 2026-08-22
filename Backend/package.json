@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
     "build": "rimraf dist && tsc",
-    "start": "npm run build && node dist/src/index.js"
+    "start": "npm run build && node dist/src/index.js",
+    "seed": "ts-node src/scripts/seed.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

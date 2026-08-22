@@ -16,15 +16,23 @@ export interface SalarySlip {
 }
 
 export interface SalaryStructure {
+  id: string;
   employeeId: string;
-  basicSalary: number;
-  hra: number;
-  conveyance: number;
-  medicalAllowance: number;
-  pfDeduction: number;
-  taxDeduction: number;
-  grossSalary: number;
-  netSalary: number;
+  wageType: 'Fixed wage';
+  monthlyWage: number;
+  yearlyWage: number;
+  workingDaysPerWeek: number;
+  hoursPerWeek: number;
+  
+  basicPercent: number;
+  hraPercent: number;
+  standardAllowance: number;
+  performanceBonusPercent: number;
+  ltaPercent: number;
+  
+  pfEmployeePercent: number;
+  pfEmployerPercent: number;
+  professionalTax: number;
 }
 
 const seedSlips: SalarySlip[] = [
@@ -76,20 +84,86 @@ export class PayrollService {
       .toArray();
   }
 
-  static async getSalaryStructure(
-    employeeId: string,
-  ): Promise<SalaryStructure> {
+  static calculateComponents(structure: SalaryStructure) {
+    const basic = (structure.monthlyWage * structure.basicPercent) / 100;
+    const hra = (basic * structure.hraPercent) / 100;
+    const performanceBonus = (basic * structure.performanceBonusPercent) / 100;
+    const lta = (basic * structure.ltaPercent) / 100;
+    const standardAllowance = structure.standardAllowance;
+    const subtotal = basic + hra + performanceBonus + lta + standardAllowance;
+    const fixedAllowance = Math.max(0, structure.monthlyWage - subtotal);
+    
+    const pfEmployee = (basic * structure.pfEmployeePercent) / 100;
+    const pfEmployer = (basic * structure.pfEmployerPercent) / 100;
+    
     return {
-      employeeId,
-      basicSalary: 6000,
-      hra: 2400,
-      conveyance: 800,
-      medicalAllowance: 800,
-      pfDeduction: 500,
-      taxDeduction: 300,
-      grossSalary: 10000,
-      netSalary: 9200,
+      ...structure,
+      calculated: {
+        basic,
+        hra,
+        performanceBonus,
+        lta,
+        standardAllowance,
+        fixedAllowance,
+        pfEmployee,
+        pfEmployer,
+        professionalTax: structure.professionalTax,
+        netPay: structure.monthlyWage - pfEmployee - structure.professionalTax
+      }
     };
+  }
+
+  static async getSalaryStructure(employeeId: string) {
+    await this.ensureSeedData();
+    const structure = await getDatabase().collection<SalaryStructure>('salary_structures').findOne({ employeeId });
+    if (!structure) {
+      return this.calculateComponents({
+        id: `struct_${Date.now()}`,
+        employeeId,
+        wageType: 'Fixed wage',
+        monthlyWage: 50000,
+        yearlyWage: 600000,
+        workingDaysPerWeek: 5,
+        hoursPerWeek: 40,
+        basicPercent: 50,
+        hraPercent: 50,
+        standardAllowance: 4167,
+        performanceBonusPercent: 8.33,
+        ltaPercent: 8.33,
+        pfEmployeePercent: 12,
+        pfEmployerPercent: 12,
+        professionalTax: 200
+      });
+    }
+    return this.calculateComponents(structure);
+  }
+
+  static async updateSalaryStructure(employeeId: string, data: Partial<SalaryStructure>) {
+    const collection = getDatabase().collection<SalaryStructure>('salary_structures');
+    const existing = await collection.findOne({ employeeId });
+    if (existing) {
+      await collection.updateOne({ employeeId }, { $set: data });
+    } else {
+      await collection.insertOne({
+        id: `struct_${Date.now()}`,
+        employeeId,
+        wageType: 'Fixed wage',
+        monthlyWage: 50000,
+        yearlyWage: 600000,
+        workingDaysPerWeek: 5,
+        hoursPerWeek: 40,
+        basicPercent: 50,
+        hraPercent: 50,
+        standardAllowance: 4167,
+        performanceBonusPercent: 8.33,
+        ltaPercent: 8.33,
+        pfEmployeePercent: 12,
+        pfEmployerPercent: 12,
+        professionalTax: 200,
+        ...data,
+      });
+    }
+    return this.getSalaryStructure(employeeId);
   }
 
   static async getPayrollOverview() {
