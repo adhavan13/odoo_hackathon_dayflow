@@ -179,16 +179,16 @@ export function AppHeader() {
             )}
           </div>
 
-          {/* AI Assistant Quick Launcher Button */}
+          {/* AI Assistant Quick Launcher Button (Matching Image Pill Styling) */}
           <Button
             onClick={toggleAiAssistant}
             variant="outline"
             size="sm"
-            className="hidden sm:flex items-center gap-1.5 h-9 bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-indigo-500/10 border-violet-500/30 hover:border-violet-500/60 text-xs font-medium transition-all duration-200"
+            className="hidden sm:flex items-center gap-2 h-9 px-3.5 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-300 dark:border-violet-700/50 rounded-xl text-xs font-semibold text-foreground transition-all duration-200 cursor-pointer shadow-2xs"
           >
-            <Bot className="h-4 w-4 text-violet-500" />
-            <span>Ask AI</span>
-            <Sparkles className="h-3 w-3 text-amber-500" />
+            <Bot className="h-4.5 w-4.5 text-violet-600 dark:text-violet-400" />
+            <span className="font-semibold text-xs tracking-tight">Ask AI</span>
+            <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500/20" />
           </Button>
 
           {/* Role View Badge */}
