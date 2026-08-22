@@ -55,8 +55,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen lg:h-screen w-full overflow-y-auto lg:overflow-hidden bg-background text-foreground flex flex-col lg:flex-row selection:bg-accent selection:text-accent-foreground">
-      {/* Left Column: Project Showcase Hero Banner (Fixed) */}
-      <div className="lg:w-1/2 h-full bg-gradient-to-br from-accent/25 via-background to-accent/10 border-b lg:border-b-0 lg:border-r border-border p-6 lg:p-12 flex flex-col justify-between relative overflow-hidden shrink-0">
+      {/* Left Column: Project Showcase Hero Banner (Hidden on mobile, visible on desktop) */}
+      <div className="hidden lg:flex lg:w-1/2 h-full bg-gradient-to-br from-accent/25 via-background to-accent/10 border-b lg:border-b-0 lg:border-r border-border p-6 lg:p-12 flex-col justify-between relative overflow-hidden shrink-0">
         {/* Glow backdrop decorative circle */}
         <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-accent/20 blur-3xl pointer-events-none" />
 
@@ -137,9 +137,22 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Right Column: Sign In Form Section (Scrollable inside form side only) */}
-      <div className="lg:w-1/2 h-full overflow-y-auto p-6 sm:p-10 lg:p-12 flex flex-col justify-start lg:justify-center items-center">
+      {/* Right Column: Sign In Form Section */}
+      <div className="w-full lg:w-1/2 min-h-screen lg:h-full overflow-y-auto p-6 sm:p-10 lg:p-12 flex flex-col justify-start lg:justify-center items-center">
         <div className="w-full max-w-md space-y-6">
+          {/* Mobile-Only Header: Logo & App Name */}
+          <div className="flex lg:hidden items-center gap-3 pb-2 border-b border-border/60">
+            <img
+              src="/logo.png"
+              alt="Dayflow Logo"
+              className="h-10 w-10 object-contain rounded-2xl bg-card p-1 border border-border shadow-md"
+            />
+            <div>
+              <h1 className="font-extrabold text-lg tracking-tight leading-none text-foreground">Dayflow</h1>
+              <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">Human Resource Management System</p>
+            </div>
+          </div>
+
           {/* Header Note */}
           <div className="space-y-1">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Sign In to Your Account</h2>
