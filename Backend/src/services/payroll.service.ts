@@ -1,3 +1,5 @@
+import { getDatabase } from '../config/database';
+
 export interface SalarySlip {
   id: string;
   employeeId: string;
@@ -25,7 +27,7 @@ export interface SalaryStructure {
   netSalary: number;
 }
 
-const mockSlips: SalarySlip[] = [
+const seedSlips: SalarySlip[] = [
   {
     id: 'slp_01',
     employeeId: 'emp_1',
@@ -57,11 +59,16 @@ const mockSlips: SalarySlip[] = [
 ];
 
 export class PayrollService {
+  private static collection() { return getDatabase().collection<SalarySlip>('salary_slips'); }
+
+  private static async ensureSeedData() {
+    const collection = this.collection();
+    if (await collection.countDocuments() === 0) await collection.insertMany(seedSlips);
+  }
+
   static async getSalarySlips(employeeId?: string) {
-    if (employeeId) {
-      return mockSlips.filter((s) => s.employeeId === employeeId);
-    }
-    return mockSlips;
+    await this.ensureSeedData();
+    return this.collection().find(employeeId ? { employeeId } : {}).toArray();
   }
 
   static async getSalaryStructure(employeeId: string): Promise<SalaryStructure> {
@@ -79,12 +86,13 @@ export class PayrollService {
   }
 
   static async getPayrollOverview() {
+    await this.ensureSeedData();
     return {
       totalPayrollMonth: '$145,200',
       totalEmployeesPaid: 34,
       pendingApprovals: 2,
       nextPayDate: '2026-08-31',
-      recentSlips: mockSlips,
+      recentSlips: await this.collection().find({}).toArray(),
     };
   }
 }

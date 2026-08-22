@@ -1,3 +1,5 @@
+import { getDatabase } from '../config/database';
+
 export interface EmployeeProfile {
   id: string;
   employeeCode: string;
@@ -12,7 +14,7 @@ export interface EmployeeProfile {
   avatarUrl: string;
 }
 
-const mockEmployees: EmployeeProfile[] = [
+const seedEmployees: EmployeeProfile[] = [
   {
     id: 'emp_1',
     employeeCode: 'EMP-1001',
@@ -55,18 +57,25 @@ const mockEmployees: EmployeeProfile[] = [
 ];
 
 export class EmployeeService {
+  private static collection() { return getDatabase().collection<EmployeeProfile>('employees'); }
+
+  private static async ensureSeedData() {
+    const collection = this.collection();
+    if (await collection.countDocuments() === 0) await collection.insertMany(seedEmployees);
+  }
+
   static async getAllEmployees() {
-    return mockEmployees;
+    await this.ensureSeedData();
+    return this.collection().find({}).toArray();
   }
 
   static async getEmployeeById(id: string) {
-    return mockEmployees.find((e) => e.id === id || e.employeeCode === id) || mockEmployees[0];
+    await this.ensureSeedData();
+    return this.collection().findOne({ $or: [{ id }, { employeeCode: id }] });
   }
 
   static async updateEmployeeProfile(id: string, updates: Partial<EmployeeProfile>) {
-    const emp = mockEmployees.find((e) => e.id === id);
-    if (!emp) return mockEmployees[0];
-    Object.assign(emp, updates);
-    return emp;
+    await this.ensureSeedData();
+    return this.collection().findOneAndUpdate({ id }, { $set: updates }, { returnDocument: 'after' });
   }
 }

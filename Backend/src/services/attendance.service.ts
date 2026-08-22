@@ -1,3 +1,5 @@
+import { getDatabase } from '../config/database';
+
 export interface AttendanceLog {
   id: string;
   employeeId: string;
@@ -9,7 +11,7 @@ export interface AttendanceLog {
   hoursWorked: number;
 }
 
-let attendanceLogs: AttendanceLog[] = [
+const seedAttendanceLogs: AttendanceLog[] = [
   {
     id: 'att_01',
     employeeId: 'emp_1',
@@ -42,17 +44,24 @@ let attendanceLogs: AttendanceLog[] = [
 ];
 
 export class AttendanceService {
+  private static collection() { return getDatabase().collection<AttendanceLog>('attendance'); }
+
+  private static async ensureSeedData() {
+    const collection = this.collection();
+    if (await collection.countDocuments() === 0) await collection.insertMany(seedAttendanceLogs);
+  }
+
   static async checkIn(employeeId: string, employeeName = 'Alex Rivera') {
+    await this.ensureSeedData();
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const existing = attendanceLogs.find(
-      (l) => l.employeeId === employeeId && l.date === today
-    );
+    const collection = this.collection();
+    const existing = await collection.findOne({ employeeId, date: today });
 
     if (existing) {
-      existing.checkIn = nowTime;
-      return existing;
+      await collection.updateOne({ id: existing.id }, { $set: { checkIn: nowTime } });
+      return { ...existing, checkIn: nowTime };
     }
 
     const newLog: AttendanceLog = {
@@ -65,22 +74,21 @@ export class AttendanceService {
       hoursWorked: 0,
     };
 
-    attendanceLogs.unshift(newLog);
+    await collection.insertOne(newLog);
     return newLog;
   }
 
   static async checkOut(employeeId: string) {
+    await this.ensureSeedData();
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const log = attendanceLogs.find(
-      (l) => l.employeeId === employeeId && l.date === today
-    );
+    const collection = this.collection();
+    const log = await collection.findOne({ employeeId, date: today });
 
     if (log) {
-      log.checkOut = nowTime;
-      log.hoursWorked = 8.0;
-      return log;
+      await collection.updateOne({ id: log.id }, { $set: { checkOut: nowTime, hoursWorked: 8.0 } });
+      return { ...log, checkOut: nowTime, hoursWorked: 8.0 };
     }
 
     const newLog: AttendanceLog = {
@@ -94,15 +102,14 @@ export class AttendanceService {
       hoursWorked: 8.0,
     };
 
-    attendanceLogs.unshift(newLog);
+    await collection.insertOne(newLog);
     return newLog;
   }
 
   static async getTodayStatus(employeeId: string) {
+    await this.ensureSeedData();
     const today = new Date().toISOString().split('T')[0];
-    const log = attendanceLogs.find(
-      (l) => l.employeeId === employeeId && l.date === today
-    );
+    const log = await this.collection().findOne({ employeeId, date: today });
 
     return {
       date: today,
@@ -116,9 +123,7 @@ export class AttendanceService {
   }
 
   static async getHistory(employeeId?: string) {
-    if (employeeId) {
-      return attendanceLogs.filter((l) => l.employeeId === employeeId);
-    }
-    return attendanceLogs;
+    await this.ensureSeedData();
+    return this.collection().find(employeeId ? { employeeId } : {}).toArray();
   }
 }

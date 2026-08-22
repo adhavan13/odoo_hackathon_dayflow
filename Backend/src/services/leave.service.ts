@@ -1,3 +1,5 @@
+import { getDatabase } from '../config/database';
+
 export interface LeaveRequest {
   id: string;
   employeeId: string;
@@ -18,7 +20,7 @@ export interface LeaveBalance {
   unpaid: { total: number; used: number; remaining: number };
 }
 
-let leaveRequests: LeaveRequest[] = [
+const seedLeaveRequests: LeaveRequest[] = [
   {
     id: 'lr_1',
     employeeId: 'emp_1',
@@ -46,11 +48,16 @@ let leaveRequests: LeaveRequest[] = [
 ];
 
 export class LeaveService {
+  private static collection() { return getDatabase().collection<LeaveRequest>('leave_requests'); }
+
+  private static async ensureSeedData() {
+    const collection = this.collection();
+    if (await collection.countDocuments() === 0) await collection.insertMany(seedLeaveRequests);
+  }
+
   static async getLeaveRequests(employeeId?: string) {
-    if (employeeId) {
-      return leaveRequests.filter((r) => r.employeeId === employeeId);
-    }
-    return leaveRequests;
+    await this.ensureSeedData();
+    return this.collection().find(employeeId ? { employeeId } : {}).toArray();
   }
 
   static async getLeaveBalance(employeeId: string): Promise<LeaveBalance> {
@@ -63,22 +70,24 @@ export class LeaveService {
   }
 
   static async applyLeave(data: Omit<LeaveRequest, 'id' | 'status' | 'appliedOn'>) {
+    await this.ensureSeedData();
     const newRequest: LeaveRequest = {
       ...data,
       id: `lr_${Date.now()}`,
       status: 'pending',
       appliedOn: new Date().toISOString().split('T')[0],
     };
-    leaveRequests.unshift(newRequest);
+    await this.collection().insertOne(newRequest);
     return newRequest;
   }
 
   static async updateLeaveStatus(id: string, status: 'approved' | 'rejected') {
-    const req = leaveRequests.find((r) => r.id === id);
+    await this.ensureSeedData();
+    const req = await this.collection().findOne({ id });
     if (!req) {
       throw new Error('Leave request not found');
     }
-    req.status = status;
-    return req;
+    await this.collection().updateOne({ id }, { $set: { status } });
+    return { ...req, status };
   }
 }
