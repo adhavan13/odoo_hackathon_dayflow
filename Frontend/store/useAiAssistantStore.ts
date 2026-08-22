@@ -38,7 +38,7 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
     {
       id: 'welcome_msg',
       sender: 'assistant',
-      message: "👋 **Welcome to Dayflow HR Assistant.**\n\nI am connected to your live MongoDB workspace database. Ask me any question about employees, attendance logs, leave requests, or payroll records.",
+      message: "**Welcome to Dayflow HR Assistant.**\n\nI am connected to your live workspace database. Ask me any question about employees, attendance logs, leave requests, or payroll records.",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       category: 'general',
     },
