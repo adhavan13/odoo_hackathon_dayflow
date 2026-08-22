@@ -61,18 +61,18 @@ export function HRAnalyticsView() {
 
   // Department Share Data
   const departmentShareData = [
-    { name: 'Engineering', value: 22, percentage: '40.7%', runs: '22 employees', color: '#3b82f6' },
-    { name: 'Sales', value: 12, percentage: '22.2%', runs: '12 employees', color: '#ea580c' },
-    { name: 'Product', value: 10, percentage: '18.5%', runs: '10 employees', color: '#10b981' },
-    { name: 'HR', value: 5, percentage: '9.3%', runs: '5 employees', color: '#e11d48' },
-    { name: 'Marketing', value: 5, percentage: '9.3%', runs: '5 employees', color: '#8b5cf6' },
+    { name: 'Engineering', value: 22, percentage: '40.7%', runs: '22 employees', color: '#70485a' },
+    { name: 'Sales', value: 12, percentage: '22.2%', runs: '12 employees', color: '#38bdf8' },
+    { name: 'Product', value: 10, percentage: '18.5%', runs: '10 employees', color: '#34d399' },
+    { name: 'HR', value: 5, percentage: '9.3%', runs: '5 employees', color: '#a78bfa' },
+    { name: 'Marketing', value: 5, percentage: '9.3%', runs: '5 employees', color: '#fbbf24' },
   ];
 
   // Outcome Share Data
   const outcomeShareData = [
-    { name: 'Approved', value: approvedCount || 5, percentage: `${Math.round(((approvedCount || 5) / totalRequests) * 100)}%`, count: `${approvedCount || 5} requests`, color: '#10b981' },
-    { name: 'Pending Review', value: pendingCount || 1, percentage: `${Math.round(((pendingCount || 1) / totalRequests) * 100)}%`, count: `${pendingCount || 1} request`, color: '#f59e0b' },
-    { name: 'Rejected', value: rejectedCount || 1, percentage: `${Math.round(((rejectedCount || 1) / totalRequests) * 100)}%`, count: `${rejectedCount || 1} request`, color: '#ef4444' },
+    { name: 'Approved', value: approvedCount || 5, percentage: `${Math.round(((approvedCount || 5) / totalRequests) * 100)}%`, count: `${approvedCount || 5} requests`, color: '#34d399' },
+    { name: 'Pending Review', value: pendingCount || 1, percentage: `${Math.round(((pendingCount || 1) / totalRequests) * 100)}%`, count: `${pendingCount || 1} request`, color: '#fbbf24' },
+    { name: 'Rejected', value: rejectedCount || 1, percentage: `${Math.round(((rejectedCount || 1) / totalRequests) * 100)}%`, count: `${rejectedCount || 1} request`, color: '#f87171' },
   ];
 
   return (
@@ -310,11 +310,11 @@ export function HRAnalyticsView() {
                   color: '#fff',
                 }}
               />
-              <Bar dataKey="present" name="Present / Checked In" stackId="a" fill="#10b981" />
-              <Bar dataKey="onLeave" name="On Leave" stackId="a" fill="#3b82f6" />
-              <Bar dataKey="halfDay" name="Half Day / Break" stackId="a" fill="#f59e0b" />
-              <Bar dataKey="late" name="Late Arrival" stackId="a" fill="#8b5cf6" />
-              <Bar dataKey="absent" name="Absent" stackId="a" fill="#ef4444" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="present" name="Present / Checked In" stackId="a" fill="#34d399" />
+              <Bar dataKey="onLeave" name="On Leave" stackId="a" fill="#38bdf8" />
+              <Bar dataKey="halfDay" name="Half Day / Break" stackId="a" fill="#fbbf24" />
+              <Bar dataKey="late" name="Late Arrival" stackId="a" fill="#a78bfa" />
+              <Bar dataKey="absent" name="Absent" stackId="a" fill="#f87171" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -322,23 +322,23 @@ export function HRAnalyticsView() {
         {/* Bottom Chart Legend Pills */}
         <div className="flex flex-wrap items-center justify-start gap-4 pt-2 border-t border-border/60 text-xs font-semibold">
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-xs bg-[#10b981]" />
+            <span className="h-3 w-3 rounded-xs bg-[#34d399]" />
             <span className="text-foreground">Present / Checked In</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-xs bg-[#3b82f6]" />
+            <span className="h-3 w-3 rounded-xs bg-[#38bdf8]" />
             <span className="text-foreground">On Leave</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-xs bg-[#f59e0b]" />
+            <span className="h-3 w-3 rounded-xs bg-[#fbbf24]" />
             <span className="text-foreground">Half Day / Break</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-xs bg-[#8b5cf6]" />
+            <span className="h-3 w-3 rounded-xs bg-[#a78bfa]" />
             <span className="text-foreground">Late Arrival</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-xs bg-[#ef4444]" />
+            <span className="h-3 w-3 rounded-xs bg-[#f87171]" />
             <span className="text-foreground">Absent</span>
           </div>
         </div>

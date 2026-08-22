@@ -103,18 +103,26 @@ export class AttendanceService {
       employeeId,
       date: dateString(now),
     });
-    if (existing?.checkIn)
-      throw new ApiError(409, "You have already checked in today.");
+    if (existing?.checkIn && !existing?.checkOut)
+      throw new ApiError(409, "You are currently checked in.");
     if (existing) {
       await getAttendance().updateOne(
         { id: existing.id },
         {
-          $set: { checkIn: timeString(now), status: "PRESENT", updatedAt: now },
+          $set: {
+            checkIn: timeString(now),
+            checkOut: null,
+            checkInTimestamp: now.getTime(),
+            status: "PRESENT",
+            updatedAt: now,
+          },
         },
       );
       return {
         ...existing,
         checkIn: timeString(now),
+        checkOut: null,
+        checkInTimestamp: now.getTime(),
         status: "PRESENT" as AttendanceStatus,
       };
     }
@@ -141,20 +149,19 @@ export class AttendanceService {
 
   static async checkOut(employeeId: string, workSummaryNote?: string) {
     const record = await this.findToday(employeeId);
-    if (!record?.checkIn)
-      throw new ApiError(400, "You must check in before checking out.");
-    if (record.checkOut)
-      throw new ApiError(409, "You have already checked out today.");
+    if (!record?.checkIn || record.checkOut)
+      throw new ApiError(400, "You are not currently checked in.");
     const checkOut = timeString();
-    const workMinutes = Math.max(
+    const sessionWorkMinutes = Math.max(
       0,
       toMinutes(checkOut) - toMinutes(record.checkIn) - record.breakMinutes,
     );
+    const newTotalWorkMinutes = (record.workMinutes || 0) + sessionWorkMinutes;
     const updated = {
       checkOut,
-      workMinutes,
-      extraMinutes: Math.max(0, workMinutes - 8 * 60),
-      workSummaryNote: workSummaryNote || null,
+      workMinutes: newTotalWorkMinutes,
+      extraMinutes: Math.max(0, newTotalWorkMinutes - 8 * 60),
+      workSummaryNote: workSummaryNote || record.workSummaryNote || null,
       updatedAt: new Date(),
     };
     await getAttendance().updateOne({ id: record.id }, { $set: updated });

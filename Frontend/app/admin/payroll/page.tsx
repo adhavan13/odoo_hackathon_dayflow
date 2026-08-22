@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { FinancialYearSelect } from "@/components/payroll/FinancialYearSelect";
-import { downloadPayslipPDF, downloadAnnualEarningsCSV } from "@/utils/exportPayroll";
+import { downloadAnnualEarningsPDF, downloadPayslipPDF } from "@/utils/exportPayroll";
 import { useEmployeeStore } from "@/store";
 import { snackbar } from "@/utils/snackbar";
 import { api } from "@/utils/api";
@@ -111,19 +111,19 @@ export default function AdminPayrollPage() {
     }
   };
 
-  const handleExportMasterCSV = () => {
-    downloadAnnualEarningsCSV(
-      "Master_Payroll_Summary",
+  const handleExportMasterPDF = () => {
+    downloadAnnualEarningsPDF(
+      "Master_Workforce_Payroll_Summary",
       financialYear,
       rows.map((r) => ({
-        month: r.employeeName,
+        month: `${r.employeeName} (${r.employeeId})`,
         grossPay: r.grossSalary,
         reimbursements: 0,
         deductions: r.totalDeductions,
         takeHome: r.netSalary,
       }))
     );
-    snackbar.success("Master Payroll CSV report downloaded!");
+    snackbar.success("Master Payroll PDF report generated & downloaded!");
   };
 
   const filteredRows = rows.filter((r) => {
@@ -199,8 +199,8 @@ export default function AdminPayrollPage() {
 
         {/* Toolbar Controls */}
         <div className="rounded-2xl border border-border bg-card p-4 space-y-4 shadow-2xs">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* Primary Action Button */}
+          {/* Top Row: Left Generate Action, Right Export CSV Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-3">
             <Button
               onClick={handleGeneratePayrollBatch}
               disabled={isGenerating}
@@ -210,63 +210,63 @@ export default function AdminPayrollPage() {
               {isGenerating ? "Calculating & Generating..." : `Generate Payroll (${selectedMonth})`}
             </Button>
 
-            {/* Financial Year & Month Selectors */}
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              <FinancialYearSelect value={financialYear} onChange={setFinancialYear} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportMasterPDF}
+              className="h-9 px-4 text-xs font-extrabold gap-1.5 text-accent border border-accent/40 bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all shrink-0 shadow-2xs"
+            >
+              <Download className="h-4 w-4" />
+              Export PDF Report
+            </Button>
+          </div>
 
-              <div className="flex items-center gap-2">
-                <Calendar className="h-3.5 w-3.5 text-accent shrink-0" />
-                <span className="text-xs font-semibold text-foreground shrink-0">Month:</span>
-                <CustomSelect
-                  value={selectedMonth}
-                  onValueChange={setSelectedMonth}
-                  options={[
-                    { label: "April 2026", value: "April 2026" },
-                    { label: "May 2026", value: "May 2026" },
-                    { label: "June 2026", value: "June 2026" },
-                    { label: "July 2026", value: "July 2026" },
-                    { label: "August 2026", value: "August 2026" },
-                    { label: "September 2026", value: "September 2026" },
-                    { label: "October 2026", value: "October 2026" },
-                  ]}
-                  className="w-40 h-8 text-xs font-bold"
-                />
-              </div>
+          {/* Filter Toolbar Row */}
+          <div className="flex flex-wrap items-center gap-3">
+            <FinancialYearSelect value={financialYear} onChange={setFinancialYear} />
 
-              {/* Search Box */}
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search employee name, ID, or department..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-8 text-xs bg-muted/20"
-                />
-              </div>
-
-              {/* Status Select */}
+            <div className="flex items-center gap-2">
+              <Calendar className="h-3.5 w-3.5 text-accent shrink-0" />
+              <span className="text-xs font-semibold text-foreground shrink-0">Month:</span>
               <CustomSelect
-                value={statusFilter}
-                onValueChange={setStatusFilter}
+                value={selectedMonth}
+                onValueChange={setSelectedMonth}
                 options={[
-                  { label: "All Statuses", value: "all" },
-                  { label: "Generated", value: "generated" },
-                  { label: "Finalized", value: "finalized" },
+                  { label: "April 2026", value: "April 2026" },
+                  { label: "May 2026", value: "May 2026" },
+                  { label: "June 2026", value: "June 2026" },
+                  { label: "July 2026", value: "July 2026" },
+                  { label: "August 2026", value: "August 2026" },
+                  { label: "September 2026", value: "September 2026" },
+                  { label: "October 2026", value: "October 2026" },
                 ]}
-                className="w-32 h-8 text-xs"
+                className="w-40 h-8 text-xs font-bold"
               />
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportMasterCSV}
-                className="h-8 text-xs font-bold gap-1.5 text-accent border-accent/40 cursor-pointer shrink-0"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Export CSV Report
-              </Button>
             </div>
+
+            {/* Search Box */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search employee name, ID, or department..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-8 text-xs bg-muted/20"
+              />
+            </div>
+
+            {/* Status Select */}
+            <CustomSelect
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+              options={[
+                { label: "All Statuses", value: "all" },
+                { label: "Generated", value: "generated" },
+                { label: "Finalized", value: "finalized" },
+              ]}
+              className="w-32 h-8 text-xs"
+            />
           </div>
         </div>
 
