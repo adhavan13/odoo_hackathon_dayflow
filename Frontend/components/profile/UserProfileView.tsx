@@ -308,7 +308,7 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="w-full space-y-6">
       {/* Top Header Card */}
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-6">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -511,17 +511,19 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
           </button>
         )}
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('security')}
-          className={`px-5 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-            activeTab === 'security'
-              ? 'border-accent text-accent bg-accent/5'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Security
-        </button>
+        {!isReadOnly && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('security')}
+            className={`px-5 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === 'security'
+                ? 'border-accent text-accent bg-accent/5'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Security
+          </button>
+        )}
       </div>
 
       {/* Tab Content 1: Resume */}
@@ -827,7 +829,8 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="e.g. 50000"
                       value={monthlyWage}
                       onChange={(e) => setMonthlyWage(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-32 h-8 text-xs font-mono font-bold bg-card"
+                      disabled={isReadOnly}
+                      className="w-32 h-8 text-xs font-mono font-bold bg-card disabled:opacity-80"
                     />
                     <span>/ Month</span>
                   </div>
@@ -851,7 +854,8 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="5"
                       value={workingDaysPerWeek}
                       onChange={(e) => setWorkingDaysPerWeek(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-16 h-8 text-xs font-bold bg-card"
+                      disabled={isReadOnly}
+                      className="w-16 h-8 text-xs font-bold bg-card disabled:opacity-80"
                     />
                     <span className="text-muted-foreground">Days</span>
                   </div>
@@ -865,7 +869,8 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="1"
                       value={breakTimeHours}
                       onChange={(e) => setBreakTimeHours(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-16 h-8 text-xs font-bold bg-card"
+                      disabled={isReadOnly}
+                      className="w-16 h-8 text-xs font-bold bg-card disabled:opacity-80"
                     />
                     <span className="text-muted-foreground">/ hrs</span>
                   </div>
@@ -1003,7 +1008,8 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="12"
                       value={pfRate}
                       onChange={(e) => setPfRate(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-14 h-7 text-xs font-mono bg-card"
+                      disabled={isReadOnly}
+                      className="w-14 h-7 text-xs font-mono bg-card disabled:opacity-80"
                     />
                     <span className="text-muted-foreground">%</span>
                   </div>
@@ -1043,7 +1049,8 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
                       placeholder="200"
                       value={profTax}
                       onChange={(e) => setProfTax(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-20 h-8 text-xs font-bold bg-card"
+                      disabled={isReadOnly}
+                      className="w-20 h-8 text-xs font-bold bg-card disabled:opacity-80"
                     />
                     <span className="text-muted-foreground">₹ / month</span>
                   </div>
@@ -1059,40 +1066,46 @@ export function UserProfileView({ isAdminView = false, employeeData, isReadOnly 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-2xs max-w-lg space-y-4">
           <h3 className="text-base font-bold text-foreground border-b border-border pb-3">Password & Security</h3>
 
-          <div className="space-y-3 text-xs">
-            <div className="space-y-1">
-              <Label className="text-xs">Current Password</Label>
-              <Input
-                type="password"
-                placeholder="Enter current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="h-9 text-xs bg-muted/20"
-              />
+          {isReadOnly ? (
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium">
+              🔒 Security & Password settings cannot be modified in View-Only Mode.
             </div>
+          ) : (
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <Label className="text-xs">Current Password</Label>
+                <Input
+                  type="password"
+                  placeholder="Enter current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="h-9 text-xs bg-muted/20"
+                />
+              </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs">New Password</Label>
-              <Input
-                type="password"
-                placeholder="Enter new password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="h-9 text-xs bg-muted/20"
-              />
-            </div>
+              <div className="space-y-1">
+                <Label className="text-xs">New Password</Label>
+                <Input
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="h-9 text-xs bg-muted/20"
+                />
+              </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs">Confirm New Password</Label>
-              <Input
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                className="h-9 text-xs bg-muted/20"
-              />
+              <div className="space-y-1">
+                <Label className="text-xs">Confirm New Password</Label>
+                <Input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="h-9 text-xs bg-muted/20"
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

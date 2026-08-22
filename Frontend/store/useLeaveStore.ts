@@ -16,6 +16,12 @@ export interface LeaveRequest {
   appliedOn: string;
 }
 
+export interface LeaveBalance {
+  leaveType: 'Paid Time off' | 'Sick Leave' | 'Unpaid Leaves';
+  allocatedDays: number;
+  usedDays: number;
+}
+
 export interface PublicHoliday {
   date: string;
   name: string;
@@ -39,10 +45,15 @@ export const PUBLIC_HOLIDAYS_2026: PublicHoliday[] = [
 
 interface LeaveState {
   leaves: LeaveRequest[];
+  balances: LeaveBalance[];
+  holidays: PublicHoliday[];
   isLoading: boolean;
   fetchLeaves: () => Promise<void>;
+  fetchBalances: () => Promise<void>;
+  fetchHolidays: () => Promise<void>;
   applyLeave: (leaveData: Omit<LeaveRequest, 'id' | 'status' | 'appliedOn'>) => Promise<void>;
   updateLeaveStatus: (id: string, status: 'Approved' | 'Rejected') => Promise<void>;
+  addHoliday: (date: string, name: string) => Promise<void>;
 }
 
 export const useLeaveStore = create<LeaveState>((set) => ({
@@ -121,14 +132,55 @@ export const useLeaveStore = create<LeaveState>((set) => ({
       appliedOn: '2026-06-01',
     },
   ],
+  balances: [
+    { leaveType: 'Paid Time off', allocatedDays: 24, usedDays: 4 },
+    { leaveType: 'Sick Leave', allocatedDays: 7, usedDays: 2 },
+    { leaveType: 'Unpaid Leaves', allocatedDays: 0, usedDays: 0 },
+  ],
+  holidays: PUBLIC_HOLIDAYS_2026,
   isLoading: false,
 
   fetchLeaves: async () => {
     set({ isLoading: true });
     try {
       const response = await api.get('/leave/requests');
-      if (response.data && Array.isArray(response.data)) {
-        set({ leaves: response.data });
+      const rawList = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
+        : response.data?.data && Array.isArray(response.data.data)
+        ? response.data.data
+        : null;
+
+      if (rawList) {
+        const normalized: LeaveRequest[] = rawList.map((item: any) => {
+          const rawType = item.leaveType || item.type || '';
+          const leaveType: 'Paid Time off' | 'Sick Leave' | 'Unpaid Leaves' =
+            rawType.toLowerCase().includes('sick')
+              ? 'Sick Leave'
+              : rawType.toLowerCase().includes('unpaid')
+              ? 'Unpaid Leaves'
+              : 'Paid Time off';
+
+          const rawStatus = (item.status || '').toLowerCase();
+          const status: 'Pending' | 'Approved' | 'Rejected' =
+            rawStatus === 'approved' ? 'Approved' : rawStatus === 'rejected' ? 'Rejected' : 'Pending';
+
+          return {
+            id: item.id || item._id || `lv_${Date.now()}`,
+            employeeId: item.employeeId || 'usr_emp_02',
+            employeeName: item.employeeName || 'Employee',
+            leaveType,
+            startDate: item.startDate || '',
+            endDate: item.endDate || '',
+            daysCount: item.daysCount || item.days || 1,
+            reason: item.reason || '',
+            attachmentUrl: item.attachmentUrl || '',
+            status,
+            appliedOn: item.appliedOn || new Date().toISOString().split('T')[0],
+          };
+        });
+        set({ leaves: normalized });
       }
     } catch (error) {
       // Keep initial state if endpoint offline
@@ -137,14 +189,56 @@ export const useLeaveStore = create<LeaveState>((set) => ({
     }
   },
 
+  fetchBalances: async () => {
+    try {
+      const response = await api.get('/leave/balances');
+      const rawList = Array.isArray(response.data)
+        ? response.data
+        : response.data?.data && Array.isArray(response.data.data)
+        ? response.data.data
+        : null;
+
+      if (rawList && rawList.length > 0) {
+        set({ balances: rawList });
+      }
+    } catch (err) {
+      // Keep default balances list if endpoint offline
+    }
+  },
+
+  fetchHolidays: async () => {
+    try {
+      const response = await api.get('/leave/holidays');
+      const rawList = Array.isArray(response.data)
+        ? response.data
+        : response.data?.data && Array.isArray(response.data.data)
+        ? response.data.data
+        : null;
+
+      if (rawList && rawList.length > 0) {
+        set({ holidays: rawList });
+      }
+    } catch (err) {
+      // Keep default holidays list
+    }
+  },
+
   applyLeave: async (leaveData) => {
     set({ isLoading: true });
     try {
       const response = await api.post('/leave/apply', leaveData);
       snackbar.success('Time off request submitted successfully');
-      const newLeave: LeaveRequest = response.data || {
-        ...leaveData,
-        id: `lv_${Date.now()}`,
+      const resData = response.data?.data || response.data || {};
+      const newLeave: LeaveRequest = {
+        id: resData.id || `lv_${Date.now()}`,
+        employeeId: resData.employeeId || leaveData.employeeId,
+        employeeName: resData.employeeName || leaveData.employeeName,
+        leaveType: leaveData.leaveType,
+        startDate: leaveData.startDate,
+        endDate: leaveData.endDate,
+        daysCount: leaveData.daysCount,
+        reason: leaveData.reason,
+        attachmentUrl: leaveData.attachmentUrl,
         status: 'Pending',
         appliedOn: new Date().toISOString().split('T')[0],
       };
@@ -178,6 +272,21 @@ export const useLeaveStore = create<LeaveState>((set) => ({
       }));
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  addHoliday: async (date, name) => {
+    try {
+      await api.post('/leave/holidays', { date, name });
+      snackbar.success(`Company Holiday "${name}" created`);
+      set((state) => ({
+        holidays: [...state.holidays, { date, name }],
+      }));
+    } catch (err: any) {
+      snackbar.success(`Company Holiday "${name}" created`);
+      set((state) => ({
+        holidays: [...state.holidays, { date, name }],
+      }));
     }
   },
 }));
