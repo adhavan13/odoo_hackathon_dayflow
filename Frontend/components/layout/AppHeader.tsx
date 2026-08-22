@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore, useSidebarStore, useAppStore, useAttendanceStore } from '@/store';
 import { useAiAssistantStore } from '@/store/useAiAssistantStore';
+import { useAnnouncementStore } from '@/store/useAnnouncementStore';
 import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,7 +80,13 @@ export function AppHeader() {
   const router = useRouter();
   const { role, user, logout } = useAuthStore();
   const { toggleMobileOpen } = useSidebarStore();
-  const { unreadCount } = useAppStore();
+  const { announcements, fetchAnnouncements } = useAnnouncementStore();
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, [fetchAnnouncements]);
+
+  const notificationCount = announcements.length > 0 ? announcements.length : unreadCount;
   const { toggleOpen: toggleAiAssistant } = useAiAssistantStore();
   const { isCheckedIn, checkInTime, checkInTimestamp, checkIn, checkOut } = useAttendanceStore();
 
@@ -237,18 +244,23 @@ export function AppHeader() {
             <span className="font-bold text-xs tracking-tight">Ask AI</span>
           </Button>
 
-          {/* Notifications Icon with Badge (Hidden on mobile) */}
+          {/* Notifications Icon with Badge */}
           <Button
             variant="ghost"
             size="icon"
             className="hidden sm:flex relative text-foreground hover:bg-accent hover:text-accent-foreground group transition-colors cursor-pointer shrink-0 h-8 w-8 sm:h-9 sm:w-9"
-            onClick={() => snackbar.info(`You have ${unreadCount} unread notifications.`)}
-            title="Notifications"
+            onClick={() => {
+              const targetRoute = activeRole === 'admin'
+                ? '/admin/notifications/announcements'
+                : '/employee/notifications/announcements';
+              router.push(targetRoute);
+            }}
+            title="View Announcements & Notifications"
           >
             <Bell className="h-4 w-4 group-hover:text-accent-foreground" />
-            {unreadCount > 0 && (
+            {notificationCount > 0 && (
               <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                {unreadCount}
+                {notificationCount}
               </span>
             )}
           </Button>
