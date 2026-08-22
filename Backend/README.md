@@ -287,17 +287,57 @@ Request:
 
 All attendance endpoints require authentication.
 
-### POST `/attendance/punch-in`
+### GET `/attendance/me?month=YYYY-MM`
+
+Returns the logged-in employee's monthly attendance. The month defaults to the current month.
+
+### GET `/attendance/me/today`
+
+Returns the logged-in employee's current-day attendance card.
+
+### POST `/attendance/check-in`
+
+The employee is taken from the bearer token. Do not send `employeeId`.
+
+Request:
+
+```json
+{
+  "source": "ASSIGNED_ATTENDANCE"
+}
+```
+
+The older `/attendance/punch-in` route is retained as an alias.
+
+### POST `/attendance/check-out`
 
 No request body.
 
-### POST `/attendance/punch-out`
+The older `/attendance/punch-out` route is retained as an alias.
+
+### POST `/attendance/break/start`
+
+No request body.
+
+### POST `/attendance/break/end`
 
 No request body.
 
 ### GET `/attendance/today`
 
-Returns today's attendance status.
+Returns today's attendance for all employees. Requires `ADMIN` or `HR` role. Optional search:
+
+```text
+GET /api/v1/attendance/today?search=adhavan
+```
+
+### GET `/attendance/employees/:employeeId?month=YYYY-MM`
+
+Returns monthly attendance for one employee. Requires `ADMIN` or `HR` role.
+
+### GET `/attendance/employees/:employeeId/payable-days?month=YYYY-MM`
+
+Calculates payable days on the server from working days, present days, paid leave, unpaid leave, and missing attendance. Requires `ADMIN` or `HR` role.
 
 ### GET `/attendance/history`
 
@@ -312,6 +352,15 @@ Filter by employee:
 ```text
 GET /api/v1/attendance/history?employeeId=emp_1
 ```
+
+## Attendance MongoDB Collections
+
+The API uses separate collections:
+
+- `attendance`: one record per employee per date. Fields include `employeeId`, `date`, `checkIn`, `checkOut`, `status`, `workMinutes`, `breakMinutes`, `extraMinutes`, and `attendanceSource`.
+- `attendance_breaks`: one record per break. Fields include `attendanceId`, `employeeId`, `startTime`, `endTime`, and `durationMinutes`.
+
+Attendance statuses are `PRESENT`, `ABSENT`, `HALF_DAY`, and `LEAVE`. A unique index prevents more than one attendance record for the same employee on the same date.
 
 ## Leave APIs
 
