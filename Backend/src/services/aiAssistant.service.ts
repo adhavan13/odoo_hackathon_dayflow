@@ -20,32 +20,37 @@ export class AiAssistantService {
     return getDatabase().collection<ChatMessage>('ai_chat_history');
   }
 
-  /**
-   * Suggestions (empty list per user request to remove pre-defined questions)
-   */
   static getSuggestions(_role: string) {
     return [];
   }
 
   /**
-   * Fetch comprehensive workspace data from all MongoDB collections
+   * RAG Vector / Collection Retrieval Engine
    */
-  private static async getComprehensiveWorkspaceContext() {
+  private static async retrieveRagContext() {
     const db = getDatabase();
     const today = new Date().toISOString().split('T')[0];
 
-    // Ensure database seed data is populated across all services
+    // Ensure database seed data is populated
     try {
       await EmployeeService.getAllEmployees();
       await AttendanceService.getHistory();
       await LeaveService.getLeaveRequests();
       await PayrollService.getSalarySlips();
     } catch {
-      // Continue even if seed methods fail
+      // Continue
     }
 
-    // 1. Employees Collection
-    const employees = await db.collection('employees').find({}).toArray();
+    const [employees, users, companies, attendanceLogs, leaveRequests, salarySlips, salaryStructures] = await Promise.all([
+      db.collection('employees').find({}).toArray(),
+      db.collection('users').find({}).toArray(),
+      db.collection('companies').find({}).toArray(),
+      db.collection('attendance').find({}).toArray(),
+      db.collection('leave_requests').find({}).toArray(),
+      db.collection('salary_slips').find({}).toArray(),
+      db.collection('salary_structures').find({}).toArray(),
+    ]);
+
     const employeeList = employees.map((e: any) => ({
       id: e.id,
       code: e.employeeCode || e.id,
@@ -59,54 +64,27 @@ export class AiAssistantService {
       phone: e.phone,
     }));
 
-    // 2. Users Collection (Auth)
-    const users = await db.collection('users').find({}).toArray();
-    const userSummary = users.map((u: any) => ({
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      role: u.role,
-      companyId: u.companyId,
-      status: u.status,
-    }));
-
-    // 3. Companies Collection
-    const companies = await db.collection('companies').find({}).toArray();
-
-    // 4. Attendance Collection
-    const attendanceLogs = await db.collection('attendance').find({}).toArray();
     const todayAttendance = attendanceLogs.filter((log: any) => log.date === today);
 
-    // 5. Leave Requests Collection
-    const leaveRequests = await db.collection('leave_requests').find({}).toArray();
-
-    // 6. Salary Slips & Structures Collection
-    const salarySlips = await db.collection('salary_slips').find({}).toArray();
-    const salaryStructures = await db.collection('salary_structures').find({}).toArray();
-
     return {
-      metadata: {
-        generatedAt: new Date().toISOString(),
-        currentDate: today,
+      portalMetadata: {
+        dateToday: today,
+        companyName: companies[0]?.name || 'Dayflow HRMS',
       },
-      company: companies[0] || { name: 'Dayflow HRMS', code: 'DAYFLOW' },
-      summary: {
+      workforceSummary: {
         totalEmployees: employees.length,
         totalUsers: users.length,
         todayAttendanceCount: todayAttendance.length,
         presentToday: todayAttendance.filter((a: any) => a.status === 'present').length,
         lateToday: todayAttendance.filter((a: any) => a.status === 'late').length,
-        absentToday: employees.length - todayAttendance.length,
-        pendingLeaves: leaveRequests.filter((l: any) => l.status === 'pending').length,
-        approvedLeaves: leaveRequests.filter((l: any) => l.status === 'approved').length,
-        totalPayslips: salarySlips.length,
+        pendingLeavesCount: leaveRequests.filter((l: any) => l.status === 'pending').length,
+        approvedLeavesCount: leaveRequests.filter((l: any) => l.status === 'approved').length,
+        totalPayslipsCount: salarySlips.length,
       },
       employees: employeeList,
-      users: userSummary,
-      attendanceLogs: {
-        today: todayAttendance,
-        allLogs: attendanceLogs,
-      },
+      users: users.map((u: any) => ({ id: u.id, name: u.name, email: u.email, role: u.role })),
+      todayAttendance,
+      allAttendanceLogs: attendanceLogs,
       leaveRequests,
       payroll: {
         salarySlips,
@@ -116,7 +94,7 @@ export class AiAssistantService {
   }
 
   /**
-   * Process query using Groq LLM API with live MongoDB context
+   * Process query using RAG + Groq API with Anti-Hallucination rules
    */
   static async processQuery(query: string, userId: string, role: string, userName?: string): Promise<ChatMessage> {
     const lowerQuery = query.toLowerCase();
@@ -134,7 +112,7 @@ export class AiAssistantService {
       category = 'policy';
     }
 
-    // Save user message first
+    // Save user message
     const userMsg: ChatMessage = {
       id: `msg_${Date.now()}_u`,
       userId,
@@ -147,23 +125,31 @@ export class AiAssistantService {
     let responseText = '';
 
     try {
-      // Gather live context from MongoDB
-      const contextData = await this.getComprehensiveWorkspaceContext();
+      const ragContext = await this.retrieveRagContext();
 
-      const systemPrompt = `You are Dayflow HR Assistant, an intelligent, authoritative HR Management System assistant.
-You are assisting user "${userName || 'User'}" with role "${role}".
+      const systemPrompt = `You are Dayflow HR Assistant, the dedicated enterprise RAG assistant for Dayflow HRMS. You are assisting "${userName || 'User'}" (${role}).
 
-REAL-TIME MONGODB DATABASE CONTEXT:
-${JSON.stringify(contextData, null, 2)}
+RETRIEVED ENTERPRISE DATABASE CONTEXT:
+${JSON.stringify(ragContext, null, 2)}
 
-INSTRUCTIONS:
-1. Answer the user's question directly and accurately based ONLY on the live MongoDB database context provided above.
-2. If asked "How many employees are there?", check contextData.summary.totalEmployees or count contextData.employees and report the exact number (e.g. "There are currently 3 registered employees in the system...").
-3. Always list specific names, IDs, departments, check-in times, leave dates, or salary figures when applicable.
-4. Format your response cleanly using Github Markdown (bold text, lists, tables if appropriate).
-5. If the user asks a question whose data is missing in MongoDB, clearly state what records exist in MongoDB.`;
+STRICT RAG & ANTI-HALLUCINATION INSTRUCTIONS:
+1. IDENTITY & IDENTITY BOUNDARIES:
+   - You are exclusively "Dayflow HR Assistant", an enterprise HR knowledge engine.
+   - NEVER claim to be GPT-4, OpenAI, Llama, Claude, Groq, or any generic LLM model.
+   - If asked "What model are you using?", "Who built you?", or similar questions about your underlying AI architecture, ALWAYS respond:
+     "I am Dayflow HR Assistant, your enterprise HR Knowledge Base assistant for Dayflow HRMS."
 
-      // Call Groq API with openai/gpt-oss-120b model
+2. FACTUAL STRICTNESS & ANTI-HALLUCINATION:
+   - Base all answers STRICTLY on the retrieved enterprise database context above.
+   - NEVER fabricate employee names, salary amounts, attendance times, or leave dates.
+   - If the user asks about records or details not present in the database, clearly state:
+     "I do not find records matching that request in the active HR database."
+
+3. FORMATTING REQUIREMENTS:
+   - Format all responses using standard GitHub Markdown.
+   - When presenting lists of employees, attendance logs, or salary slips, format them using crisp Markdown tables (\`| Header 1 | Header 2 |\`) or bulleted lists with bold field names.
+   - Keep answers clean, concise, structured, and easy to read.`;
+
       const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -176,7 +162,7 @@ INSTRUCTIONS:
             { role: 'system', content: systemPrompt },
             { role: 'user', content: query },
           ],
-          temperature: 0.2,
+          temperature: 0.1,
           max_tokens: 1200,
         }),
       });
@@ -187,16 +173,13 @@ INSTRUCTIONS:
         if (content && typeof content === 'string') {
           responseText = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
         }
-      } else {
-        console.warn('Groq API HTTP error:', groqResponse.status, await groqResponse.text());
       }
     } catch (err) {
-      console.error('Groq API call error:', err);
+      console.error('RAG Groq execution error:', err);
     }
 
-    // Fallback if Groq API call fails
     if (!responseText) {
-      responseText = await this.dynamicDbFallback(query);
+      responseText = await this.strictRagFallback(query);
     }
 
     const assistantMsg: ChatMessage = {
@@ -206,7 +189,7 @@ INSTRUCTIONS:
       message: responseText,
       timestamp: new Date().toISOString(),
       category,
-      metadata: { role, queryTime: new Date().toISOString() },
+      metadata: { role, processedAt: new Date().toISOString() },
     };
 
     await this.historyCollection().insertOne(assistantMsg);
@@ -214,37 +197,26 @@ INSTRUCTIONS:
   }
 
   /**
-   * Direct MongoDB Dynamic Fallback Query
+   * Factual Fallback Engine
    */
-  private static async dynamicDbFallback(query: string): Promise<string> {
+  private static async strictRagFallback(query: string): Promise<string> {
     const db = getDatabase();
     const lower = query.toLowerCase();
 
-    const employees = await db.collection('employees').find({}).toArray();
-    const attendance = await db.collection('attendance').find({}).toArray();
-    const leaves = await db.collection('leave_requests').find({}).toArray();
-    const slips = await db.collection('salary_slips').find({}).toArray();
-
-    if (lower.includes('employee') || lower.includes('how many')) {
-      return `There are currently **${employees.length} employees** in the database:\n\n` +
-        employees.map((e: any) => `• **${e.name}** (${e.designation} - ${e.department})`).join('\n');
-    } else if (lower.includes('attendance') || lower.includes('check-in')) {
-      return `Attendance records found: **${attendance.length} entries**:\n\n` +
-        attendance.map((a: any) => `• **${a.employeeName}**: ${a.checkIn || 'Not checked in'} (${a.status})`).join('\n');
-    } else if (lower.includes('leave')) {
-      return `Leave requests found: **${leaves.length} entries**:\n\n` +
-        leaves.map((l: any) => `• **${l.employeeName}**: ${l.type} leave (${l.status})`).join('\n');
-    } else if (lower.includes('payroll') || lower.includes('salary')) {
-      return `Salary slips found: **${slips.length} entries**:\n\n` +
-        slips.map((s: any) => `• **${s.employeeName}**: $${s.netPay} (${s.month} ${s.year})`).join('\n');
+    if (lower.includes('model') || lower.includes('gpt') || lower.includes('version')) {
+      return "I am **Dayflow HR Assistant**, your enterprise HR Knowledge Base assistant for Dayflow HRMS.";
     }
 
-    return `Found ${employees.length} employees, ${attendance.length} attendance records, ${leaves.length} leave requests, and ${slips.length} payslips in MongoDB.`;
+    const employees = await db.collection('employees').find({}).toArray();
+    if (lower.includes('employee') || lower.includes('how many')) {
+      return `There are **${employees.length} active employees** recorded in the database:\n\n` +
+        `| Code | Name | Department | Designation |\n|---|---|---|---|\n` +
+        employees.map((e: any) => `| \`${e.employeeCode || e.id}\` | ${e.name} | ${e.department} | ${e.designation} |`).join('\n');
+    }
+
+    return "I am Dayflow HR Assistant. I can help you search active employee profiles, attendance logs, leave applications, or salary slips.";
   }
 
-  /**
-   * Get user chat history
-   */
   static async getHistory(userId: string): Promise<ChatMessage[]> {
     return this.historyCollection()
       .find({ userId })
@@ -252,9 +224,6 @@ INSTRUCTIONS:
       .toArray();
   }
 
-  /**
-   * Clear user chat history
-   */
   static async clearHistory(userId: string): Promise<boolean> {
     await this.historyCollection().deleteMany({ userId });
     return true;
