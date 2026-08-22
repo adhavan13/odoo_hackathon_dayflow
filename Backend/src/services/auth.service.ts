@@ -18,6 +18,31 @@ export interface UserDTO {
   avatarUrl?: string;
   department?: string;
   designation?: string;
+  manager?: string;
+  location?: string;
+  about?: string;
+  whatILove?: string;
+  interests?: string;
+  skills?: string[];
+  certifications?: string[];
+  dob?: string;
+  residingAddress?: string;
+  nationality?: string;
+  gender?: string;
+  maritalStatus?: string;
+  personalEmail?: string;
+  bankName?: string;
+  bankAccountNo?: string;
+  ifscCode?: string;
+  panNo?: string;
+  uanNo?: string;
+  empCode?: string;
+  dateOfJoining?: string;
+  monthlyWage?: number;
+  workingDaysPerWeek?: number;
+  breakTimeHours?: number;
+  pfRate?: number;
+  profTax?: number;
 }
 
 interface StoredUser extends UserDTO {

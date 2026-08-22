@@ -247,11 +247,7 @@ export function AppHeader() {
                 className="flex items-center gap-2 pl-2 outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-accent rounded-full p-1 transition-colors hover:bg-muted/50"
               >
                 <div className="h-8 w-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
-                  {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user?.name || 'User'} className="h-full w-full object-cover" />
-                  ) : (
-                    <User className="h-4 w-4 text-accent" />
-                  )}
+                  <img src={user?.avatarUrl || '/user.png'} alt={user?.name || 'User'} className="h-full w-full object-cover" />
                 </div>
                 <div className="hidden sm:flex flex-col text-left">
                   <span suppressHydrationWarning className="text-xs font-semibold leading-tight">{user?.name || 'User'}</span>

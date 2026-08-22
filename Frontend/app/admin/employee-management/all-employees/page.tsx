@@ -152,11 +152,7 @@ export default function AllEmployeesPage() {
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
-                          {emp.avatarUrl ? (
-                            <img src={emp.avatarUrl} alt={emp.name} className="h-full w-full object-cover" />
-                          ) : (
-                            emp.name.substring(0, 2).toUpperCase()
-                          )}
+                          <img src={emp.avatarUrl || '/user.png'} alt={emp.name} className="h-full w-full object-cover" />
                         </div>
                         <div>
                           <p className="font-bold text-foreground">{emp.name}</p>
