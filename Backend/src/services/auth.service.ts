@@ -7,10 +7,13 @@ import { getDatabase } from "../config/database";
 
 export interface UserDTO {
   id: string;
-  employeeId: string;
+  employeeId?: string;
   email: string;
-  role: "HR" | "EMPLOYEE";
+  role: "ADMIN" | "HR" | "EMPLOYEE";
+  companyId?: string;
   name?: string;
+  phone?: string;
+  logo?: string;
   avatarUrl?: string;
   department?: string;
   designation?: string;
@@ -23,8 +26,18 @@ interface StoredUser extends UserDTO {
   status: "active" | "inactive";
   verificationToken?: string;
   verificationTokenExpiresAt?: number;
+  verificationOtpHash?: string;
+  verificationOtpExpiresAt?: number;
   resetToken?: string;
   resetTokenExpiresAt?: number;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  companyCode: string;
+  logo?: string;
+  createdAt: Date;
 }
 
 const seedUsers: StoredUser[] = [
@@ -65,10 +78,13 @@ const publicUser = ({
   verificationTokenExpiresAt,
   resetToken,
   resetTokenExpiresAt,
+  verificationOtpHash,
+  verificationOtpExpiresAt,
   ...user
 }: StoredUser): UserDTO => user;
 
 const getUsers = () => getDatabase().collection<StoredUser>("users");
+const getCompanies = () => getDatabase().collection<Company>("companies");
 
 const ensureSeedUsers = async () => {
   const collection = getUsers();
@@ -91,11 +107,17 @@ const validatePassword = (password: string) => {
   }
 };
 
+const hashOtp = (otp: string) =>
+  crypto.createHash("sha256").update(otp).digest("hex");
+
+const createVerificationOtp = () => String(crypto.randomInt(100000, 1000000));
+
 const createToken = (user: UserDTO) =>
   jwt.sign(
     {
       id: user.id,
       employeeId: user.employeeId,
+      companyId: user.companyId,
       email: user.email,
       role: user.role,
       name: user.name,
@@ -106,45 +128,138 @@ const createToken = (user: UserDTO) =>
 
 export class AuthService {
   static async signup(
-    employeeId: string,
+    companyName: string,
+    name: string,
     email: string,
+    phone: string,
     password: string,
-    role: "EMPLOYEE" | "HR",
+    confirmPassword: string,
+    logo?: string,
   ) {
-    if (!/^EMP[-]?\d{3,}$/i.test(employeeId))
-      throw new ApiError(400, "Invalid employee ID.");
+    if (typeof companyName !== "string" || companyName.trim().length < 2)
+      throw new ApiError(400, "Company name is required.");
+    if (typeof name !== "string" || name.trim().length < 2)
+      throw new ApiError(400, "Name is required.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       throw new ApiError(400, "Invalid email address.");
-    if (role !== "EMPLOYEE" && role !== "HR")
-      throw new ApiError(400, "Role must be EMPLOYEE or HR.");
+    if (typeof phone !== "string" || phone.trim().length < 7)
+      throw new ApiError(400, "Phone number is required.");
+    if (password !== confirmPassword)
+      throw new ApiError(400, "Password and confirmPassword must match.");
     validatePassword(password);
     const normalizedEmail = email.trim().toLowerCase();
-    const normalizedEmployeeId = employeeId.trim().toUpperCase();
     await ensureSeedUsers();
     const collection = getUsers();
-    if (await collection.findOne({ employeeId: normalizedEmployeeId }))
-      throw new ApiError(409, "Employee ID is already registered.");
     if (await collection.findOne({ email: normalizedEmail }))
       throw new ApiError(409, "Email is already registered.");
 
+    const companyCollection = getCompanies();
+    const companyCodeBase =
+      companyName
+        .trim()
+        .split(/\s+/)
+        .map((word) => word[0])
+        .join("")
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "")
+        .slice(0, 4) || "COMP";
+    let companyCode = companyCodeBase;
+    let codeNumber = 1;
+    while (await companyCollection.findOne({ companyCode }))
+      companyCode = `${companyCodeBase}${codeNumber++}`;
+    const company: Company = {
+      id: crypto.randomUUID(),
+      name: companyName.trim(),
+      companyCode,
+      ...(logo ? { logo } : {}),
+      createdAt: new Date(),
+    };
     const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationOtp = createVerificationOtp();
     const user: StoredUser = {
       id: crypto.randomUUID(),
-      employeeId: normalizedEmployeeId,
       email: normalizedEmail,
       username: normalizedEmail,
-      role,
+      companyId: company.id,
+      role: "ADMIN",
+      name: name.trim(),
+      phone: phone.trim(),
+      ...(logo ? { logo } : {}),
       passwordHash: await bcrypt.hash(password, 10),
       emailVerified: false,
       status: "active",
       verificationToken,
       verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      verificationOtpHash: hashOtp(verificationOtp),
+      verificationOtpExpiresAt: Date.now() + 10 * 60 * 1000,
     };
+    await companyCollection.insertOne(company);
     await collection.insertOne(user);
     console.info(
       `[auth] Verification token for ${normalizedEmail}: ${verificationToken}`,
     );
-    return { user: publicUser(user), verificationToken };
+    console.info(
+      `[auth] Verification OTP for ${normalizedEmail}: ${verificationOtp}`,
+    );
+    return {
+      user: publicUser(user),
+      company,
+      accessToken: createToken(publicUser(user)),
+      verificationToken,
+      verificationOtp,
+    };
+  }
+
+  static async sendVerificationOtp(email: string) {
+    if (typeof email !== "string")
+      throw new ApiError(400, "Email is required.");
+    const collection = getUsers();
+    const user = await collection.findOne({
+      email: email.trim().toLowerCase(),
+    });
+    if (!user) throw new ApiError(404, "User not found.");
+    if (user.emailVerified)
+      throw new ApiError(400, "Email is already verified.");
+    const otp = createVerificationOtp();
+    await collection.updateOne(
+      { id: user.id },
+      {
+        $set: {
+          verificationOtpHash: hashOtp(otp),
+          verificationOtpExpiresAt: Date.now() + 10 * 60 * 1000,
+        },
+      },
+    );
+    console.info(`[auth] Verification OTP for ${user.email}: ${otp}`);
+    return { otp };
+  }
+
+  static async verifyEmailOtp(email: string, otp: string) {
+    if (typeof email !== "string" || !/^\d{6}$/.test(otp))
+      throw new ApiError(400, "Email and a 6-digit OTP are required.");
+    const collection = getUsers();
+    const user = await collection.findOne({
+      email: email.trim().toLowerCase(),
+    });
+    if (
+      !user ||
+      user.verificationOtpHash !== hashOtp(otp) ||
+      !user.verificationOtpExpiresAt ||
+      user.verificationOtpExpiresAt < Date.now()
+    )
+      throw new ApiError(400, "Invalid or expired OTP.");
+    await collection.updateOne(
+      { id: user.id },
+      {
+        $set: { emailVerified: true },
+        $unset: {
+          verificationToken: "",
+          verificationTokenExpiresAt: "",
+          verificationOtpHash: "",
+          verificationOtpExpiresAt: "",
+        },
+      },
+    );
   }
 
   static async verifyEmail(token: string) {
