@@ -239,20 +239,43 @@ export class AttendanceService {
     };
   }
 
-  static async getTodayForAdmin(search?: string, date?: string, status?: string, department?: string) {
-    const query: Record<string, unknown> = { date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : dateString() };
+  static async getTodayForAdmin(
+    search?: string,
+    date?: string,
+    status?: string,
+    department?: string,
+  ) {
+    const query: Record<string, unknown> = {
+      date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : dateString(),
+    };
     if (search) query.employeeName = { $regex: search, $options: "i" };
-    if (status && status !== "all") query.status = status.toUpperCase() === "ON LEAVE" ? "LEAVE" : status.toUpperCase().replace(" ", "_");
+    if (status && status !== "all")
+      query.status =
+        status.toUpperCase() === "ON LEAVE"
+          ? "LEAVE"
+          : status.toUpperCase().replace(" ", "_");
     if (department && department !== "all") query.department = department;
     const records = await getAttendance().find(query).toArray();
-    const employees = await getDatabase().collection<{ id: string; name: string; department?: string }>("employees").find({}).toArray();
+    const employees = await getDatabase()
+      .collection<{
+        id: string;
+        name: string;
+        department?: string;
+      }>("employees")
+      .find({})
+      .toArray();
     const enrichedRecords = records.map((record) => {
-      const employee = employees.find((candidate) => candidate.id === record.employeeId || candidate.name === record.employeeName);
+      const employee = employees.find(
+        (candidate) =>
+          candidate.id === record.employeeId ||
+          candidate.name === record.employeeName,
+      );
       return employee ? { ...record, department: employee.department } : record;
     });
-    const filteredRecords = department && department !== "all"
-      ? enrichedRecords.filter((record) => record.department === department)
-      : enrichedRecords;
+    const filteredRecords =
+      department && department !== "all"
+        ? enrichedRecords.filter((record) => record.department === department)
+        : enrichedRecords;
     const totalEmployees = await getDatabase()
       .collection("employees")
       .countDocuments();
@@ -260,9 +283,11 @@ export class AttendanceService {
       date: dateString(),
       summary: {
         totalEmployees,
-        present: filteredRecords.filter((record) => record.status === "PRESENT").length,
+        present: filteredRecords.filter((record) => record.status === "PRESENT")
+          .length,
         absent: Math.max(0, totalEmployees - filteredRecords.length),
-        onLeave: filteredRecords.filter((record) => record.status === "LEAVE").length,
+        onLeave: filteredRecords.filter((record) => record.status === "LEAVE")
+          .length,
       },
       attendance: filteredRecords.map(addDisplayTimes),
     };

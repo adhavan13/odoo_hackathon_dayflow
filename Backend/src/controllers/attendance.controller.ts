@@ -17,26 +17,22 @@ export const punchIn = asyncHandler(
       user.name,
       req.body.source,
     );
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Check-in successful",
-        attendance: result,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Check-in successful",
+      attendance: result,
+    });
   },
 );
 
 export const punchOut = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const result = await AttendanceService.checkOut(currentUser(req).id);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Check-out successful",
-        attendance: result,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Check-out successful",
+      attendance: result,
+    });
   },
 );
 
@@ -52,13 +48,11 @@ export const getAttendanceHistory = asyncHandler(
     const history = await AttendanceService.getHistory(
       req.query.employeeId as string | undefined,
     );
-    return res
-      .status(200)
-      .json({
-        success: true,
-        data: history,
-        message: "Attendance history fetched successfully",
-      });
+    return res.status(200).json({
+      success: true,
+      data: history,
+      message: "Attendance history fetched successfully",
+    });
   },
 );
 
@@ -75,29 +69,25 @@ export const getMyAttendance = asyncHandler(
 export const startBreak = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const result = await AttendanceService.startBreak(currentUser(req).id);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Break started",
-        break: { id: result.id, startTime: result.startTime },
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Break started",
+      break: { id: result.id, startTime: result.startTime },
+    });
   },
 );
 
 export const endBreak = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const result = await AttendanceService.endBreak(currentUser(req).id);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        break: {
-          startTime: result.startTime,
-          endTime: result.endTime,
-          duration: result.duration,
-        },
-      });
+    return res.status(200).json({
+      success: true,
+      break: {
+        startTime: result.startTime,
+        endTime: result.endTime,
+        duration: result.duration,
+      },
+    });
   },
 );
 

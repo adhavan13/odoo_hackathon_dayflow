@@ -9,6 +9,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     employeeId: string;
+    companyId?: string;
     role: "ADMIN" | "HR" | "EMPLOYEE";
     name?: string;
   };
