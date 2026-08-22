@@ -30,8 +30,11 @@ const seed = async () => {
     console.log('Seeding Attendance...');
     await AttendanceService.getHistory();
 
-    console.log('Seeding Leaves...');
+    console.log('Seeding Leaves & Balances...');
     await LeaveService.getLeaveRequests();
+    await LeaveService.getLeaveBalance('emp_1');
+    await LeaveService.getLeaveBalance('emp_2');
+    await LeaveService.getLeaveBalance('emp_3');
 
     console.log('Seeding Payroll & Salary Slips...');
     await PayrollService.getSalarySlips();
