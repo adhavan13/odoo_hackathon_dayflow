@@ -26,6 +26,7 @@ export const signupUser = asyncHandler(async (req: Request, res: Response) => {
     confirmPassword,
     logo,
   );
+  console.log("Signup result:", result); // Debugging line
   return res.status(201).json({
     success: true,
     message:
@@ -44,13 +45,11 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
 export const sendVerificationOtp = asyncHandler(
   async (req: Request, res: Response) => {
     const result = await AuthService.sendVerificationOtp(req.body.email);
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Verification OTP sent successfully.",
-        verificationOtp: result.otp,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Verification OTP sent successfully.",
+      verificationOtp: result.otp,
+    });
   },
 );
 
