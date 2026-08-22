@@ -74,11 +74,7 @@ export default function EmployeeOverviewPage() {
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-accent/20 border-2 border-accent/40 flex items-center justify-center font-bold text-accent text-xl sm:text-2xl overflow-hidden shrink-0 shadow-md">
-                {user?.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={user?.name} className="h-full w-full object-cover" />
-                ) : (
-                  <User className="h-8 w-8 text-accent" />
-                )}
+                <img src={user?.avatarUrl || '/user.png'} alt={user?.name || 'User'} className="h-full w-full object-cover" />
               </div>
 
               <div className="space-y-1">

@@ -116,8 +116,8 @@ export class EmployeeService {
       designation: data.designation || "Software Developer",
       joinDate: new Date().toISOString().split("T")[0],
       status: "active",
-      phone: data.phone || "+1 (555) 000-0000",
-      avatarUrl: data.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      phone: data.phone || "",
+      avatarUrl: data.avatarUrl || "",
     };
 
     // Create user record with reset token for password creation
