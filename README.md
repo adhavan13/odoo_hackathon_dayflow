@@ -1,4 +1,4 @@
-# DayFlow — HRMS Platform
+# DayFlow - HRMS Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=node.js)](https://nodejs.org/)
