@@ -1,8 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { PageContainer } from '@/components/ui/page-container';
-import { useAttendanceStore, AttendanceRecord } from '@/store';
+import React, { useEffect, useState } from "react";
+import { PageContainer } from "@/components/ui/page-container";
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,44 +12,92 @@ import {
   CheckCircle2,
   Clock,
   Plane,
-  FileText,
-  Eye,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { CustomSelect } from '@/components/ui/custom-select';
-import { DatePicker } from '@/components/ui/date-picker';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  AlertCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { CustomSelect } from "@/components/ui/custom-select";
+import { DatePicker } from "@/components/ui/date-picker";
+import { api } from "@/utils/api";
+
+const formatTime = (value?: string | null) => {
+  if (!value) return "--";
+  const [hours, minutes] = value.split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return value;
+  return `${String(hours % 12 || 12).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${hours >= 12 ? "PM" : "AM"}`;
+};
 
 export default function AdminDailyAttendancePage() {
-  const { records } = useAttendanceStore();
-
   // Navigation & Filter State
-  const [selectedDate, setSelectedDate] = useState('2025-10-22');
-  const [search, setSearch] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedRecordForNote, setSelectedRecordForNote] = useState<AttendanceRecord | null>(null);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [records, setRecords] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
+  useEffect(() => {
+    const loadAttendance = async () => {
+      setIsLoading(true);
+      try {
+        const response = await api.get("/attendance/today", {
+          params: {
+            date: selectedDate,
+            search: search || undefined,
+            status: statusFilter,
+            department: departmentFilter,
+          },
+        });
+        const employeeResponse = await api.get("/employees");
+        const employees = (employeeResponse.data as any) || [];
+        const attendance = (response.data as any)?.attendance || [];
+        setRecords(
+          attendance.map((record: any) => {
+            const employee = employees.find(
+              (item: any) =>
+                item.id === record.employeeId ||
+                item.name === record.employeeName,
+            );
+            return {
+              ...record,
+              department: record.department || employee?.department,
+              status:
+                record.status === "PRESENT"
+                  ? "Present"
+                  : record.status === "LEAVE"
+                    ? "On Leave"
+                    : record.status === "HALF_DAY"
+                      ? "Half Day"
+                      : "Absent",
+            };
+          }),
+        );
+      } catch {
+        setRecords([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadAttendance();
+  }, [selectedDate, search, statusFilter, departmentFilter]);
+
   // Filter records by date, search, department, and status
   const filteredRecords = records.filter((rec) => {
     const matchesSearch =
       rec.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-      (rec.department && rec.department.toLowerCase().includes(search.toLowerCase())) ||
-      (rec.workSummaryNote && rec.workSummaryNote.toLowerCase().includes(search.toLowerCase()));
-    const matchesDept = departmentFilter === 'all' || rec.department === departmentFilter;
-    const matchesStatus = statusFilter === 'all' || rec.status.toLowerCase() === statusFilter.toLowerCase();
+      (rec.department &&
+        rec.department.toLowerCase().includes(search.toLowerCase()));
+    const matchesDept =
+      departmentFilter === "all" || rec.department === departmentFilter;
+    const matchesStatus =
+      statusFilter === "all" ||
+      rec.status.toLowerCase() === statusFilter.toLowerCase();
 
     return matchesSearch && matchesDept && matchesStatus;
   });
@@ -58,11 +105,15 @@ export default function AdminDailyAttendancePage() {
   const totalPages = Math.ceil(filteredRecords.length / itemsPerPage) || 1;
   const paginatedRecords = filteredRecords.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
-  const presentCount = filteredRecords.filter((r) => r.status === 'Present' || r.status === 'Late').length;
-  const leaveCount = filteredRecords.filter((r) => r.status === 'On Leave' || r.status === 'Absent').length;
+  const presentCount = filteredRecords.filter(
+    (r) => r.status === "Present" || r.status === "Late",
+  ).length;
+  const leaveCount = filteredRecords.filter(
+    (r) => r.status === "On Leave" || r.status === "Absent",
+  ).length;
 
   return (
     <PageContainer
@@ -78,8 +129,12 @@ export default function AdminDailyAttendancePage() {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Total Logged Records</p>
-              <p className="text-xl font-extrabold text-foreground">{records.length}</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Total Logged Records
+              </p>
+              <p className="text-xl font-extrabold text-foreground">
+                {records.length}
+              </p>
             </div>
           </div>
 
@@ -88,8 +143,12 @@ export default function AdminDailyAttendancePage() {
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Present Today</p>
-              <p className="text-xl font-extrabold text-foreground">{presentCount}</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Present Today
+              </p>
+              <p className="text-xl font-extrabold text-foreground">
+                {presentCount}
+              </p>
             </div>
           </div>
 
@@ -98,8 +157,12 @@ export default function AdminDailyAttendancePage() {
               <Plane className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">On Leave / Absent</p>
-              <p className="text-xl font-extrabold text-foreground">{leaveCount}</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                On Leave / Absent
+              </p>
+              <p className="text-xl font-extrabold text-foreground">
+                {leaveCount}
+              </p>
             </div>
           </div>
 
@@ -108,17 +171,39 @@ export default function AdminDailyAttendancePage() {
               <Clock className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-accent">Average Work Time</p>
-              <p className="text-xl font-extrabold text-accent">08h 30m</p>
+              <p className="text-xs font-semibold text-accent">
+                Average Work Time
+              </p>
+              <p className="text-xl font-extrabold text-foreground">
+                08:45 Hrs
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Date Selector & Search Filters Toolbar */}
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-2xs space-y-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            {/* Date Selection Controls */}
-            <div className="flex items-center gap-2">
+        {/* Toolbar Controls (Matching Wireframe 1 input_file_0.png) */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-2xs">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            {/* Navigation: [<] [>] [Date v] [Day] */}
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-9 w-9 cursor-pointer text-foreground"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-9 w-9 cursor-pointer text-foreground"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Date Selector Dropdown */}
               <DatePicker
                 value={selectedDate}
                 onChange={setSelectedDate}
@@ -151,18 +236,19 @@ export default function AdminDailyAttendancePage() {
           <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/60">
             <div className="flex items-center gap-2">
               <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-semibold text-foreground">Filter By:</span>
+              <span className="text-xs font-semibold text-foreground">
+                Filter By:
+              </span>
             </div>
 
             <CustomSelect
               value={departmentFilter}
               onValueChange={setDepartmentFilter}
               options={[
-                { label: 'All Departments', value: 'all' },
-                { label: 'Software Engineering', value: 'Software Engineering' },
-                { label: 'Human Resources', value: 'Human Resources' },
-                { label: 'Product Management', value: 'Product Management' },
-                { label: 'Sales & Marketing', value: 'Sales & Marketing' },
+                { label: "All Departments", value: "all" },
+                { label: "Engineering", value: "Engineering" },
+                { label: "Human Resources", value: "Human Resources" },
+                { label: "Product", value: "Product" },
               ]}
               size="sm"
               className="w-48 text-xs h-8"
@@ -172,10 +258,11 @@ export default function AdminDailyAttendancePage() {
               value={statusFilter}
               onValueChange={setStatusFilter}
               options={[
-                { label: 'All Statuses', value: 'all' },
-                { label: 'Present', value: 'present' },
-                { label: 'Late', value: 'late' },
-                { label: 'On Leave', value: 'on leave' },
+                { label: "All Statuses", value: "all" },
+                { label: "Present", value: "present" },
+                { label: "On Leave", value: "on leave" },
+                { label: "Absent", value: "absent" },
+                { label: "Half Day", value: "half day" },
               ]}
               size="sm"
               className="w-36 text-xs h-8"
@@ -185,9 +272,15 @@ export default function AdminDailyAttendancePage() {
 
         {/* Selected Date Header */}
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-base font-extrabold text-foreground">Workforce Attendance & Daily Notes Table</h3>
-          <span className="text-xs text-muted-foreground font-mono">
-            {filteredRecords.length} record{filteredRecords.length !== 1 ? 's' : ''} found
+          <h3 className="text-base font-extrabold text-foreground">
+            {new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-US", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </h3>
+          <span className="text-xs text-muted-foreground">
+            Attendance Basis for Payroll Computation
           </span>
         </div>
 
@@ -206,9 +299,21 @@ export default function AdminDailyAttendancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {paginatedRecords.length > 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="p-8 text-center text-muted-foreground text-xs"
+                    >
+                      Loading attendance...
+                    </td>
+                  </tr>
+                ) : paginatedRecords.length > 0 ? (
                   paginatedRecords.map((rec) => (
-                    <tr key={rec.id} className="hover:bg-muted/30 transition-colors">
+                    <tr
+                      key={rec.id}
+                      className="hover:bg-muted/30 transition-colors"
+                    >
                       {/* Emp Column */}
                       <td className="p-4">
                         <div className="flex items-center gap-3">
@@ -216,63 +321,56 @@ export default function AdminDailyAttendancePage() {
                             {rec.employeeName.substring(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-foreground">{rec.employeeName}</p>
-                            <p className="text-[11px] text-muted-foreground">{rec.department || 'Software Engineering'}</p>
+                            <p className="font-bold text-foreground">
+                              {rec.employeeName}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {rec.department || "Department"}
+                            </p>
                           </div>
                         </div>
                       </td>
 
-                      {/* Date */}
-                      <td className="p-4 font-mono font-bold text-foreground">{rec.date}</td>
+                      {/* Check In */}
+                      <td className="p-4 font-mono font-bold text-foreground">
+                        {formatTime(rec.checkIn)}
+                      </td>
 
-                      {/* Check In / Out */}
-                      <td className="p-4 font-mono text-xs">
-                        <div>In: <span className="font-bold text-accent">{rec.checkIn}</span></div>
-                        <div>Out: <span className="font-bold text-muted-foreground">{rec.checkOut || 'Active Shift'}</span></div>
+                      {/* Check Out */}
+                      <td className="p-4 font-mono font-bold text-foreground">
+                        {rec.checkOut ? (
+                          formatTime(rec.checkOut)
+                        ) : (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold animate-pulse">
+                            Active (In Shift)
+                          </span>
+                        )}
                       </td>
 
                       {/* Work Hours */}
                       <td className="p-4 font-mono font-bold text-accent">
-                        {rec.workHours || '08:30'}
+                        {rec.workHours || "08:30"}
                       </td>
 
-                      {/* Daily Work Summary Note Column */}
-                      <td className="p-4 max-w-sm">
-                        {rec.workSummaryNote ? (
-                          <div className="flex items-start gap-2 bg-muted/30 p-2.5 rounded-xl border border-border/80 text-xs text-foreground/90">
-                            <FileText className="h-4 w-4 text-accent shrink-0 mt-0.5" />
-                            <div className="flex-1 overflow-hidden">
-                              <p className="line-clamp-2 text-xs font-medium leading-relaxed">
-                                {rec.workSummaryNote}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedRecordForNote(rec)}
-                                className="text-[11px] font-bold text-accent hover:underline flex items-center gap-1 mt-1 cursor-pointer"
-                              >
-                                <Eye className="h-3 w-3" /> Read Full Note
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground italic text-[11px]">No summary note submitted</span>
-                        )}
+                      {/* Extra Hours */}
+                      <td className="p-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        {rec.extraHours || "00:00"}
                       </td>
 
                       {/* Status */}
                       <td className="p-4 text-right">
-                        {rec.status === 'Present' && (
+                        {rec.status === "Present" && (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            {rec.checkOut ? 'Present' : 'Active Shift'}
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                            {rec.checkOut ? "Present" : "Active Shift"}
                           </span>
                         )}
-                        {rec.status === 'Late' && (
+                        {rec.status === "Late" && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                             Late
                           </span>
                         )}
-                        {(rec.status === 'Absent' || rec.status === 'On Leave') && (
+                        {rec.status === "On Leave" && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-500 border border-blue-500/30">
                             {rec.status}
                           </span>
@@ -282,8 +380,11 @@ export default function AdminDailyAttendancePage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                      No attendance & work log records found matching your filters.
+                    <td
+                      colSpan={6}
+                      className="p-8 text-center text-muted-foreground text-xs"
+                    >
+                      No employee attendance records found for this criteria.
                     </td>
                   </tr>
                 )}
