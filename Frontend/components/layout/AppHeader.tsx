@@ -1,17 +1,26 @@
 'use client';
 
 import React from 'react';
-import { usePathname } from 'next/navigation';
-import { Menu, Bell, Search, ShieldCheck, UserCheck } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Menu, Bell, Search, ShieldCheck, UserCheck, User, LogOut } from 'lucide-react';
 import { useAuthStore, useSidebarStore, useAppStore } from '@/store';
 import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { snackbar } from '@/utils/snackbar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function AppHeader() {
   const pathname = usePathname();
-  const { role, switchRole, user } = useAuthStore();
+  const router = useRouter();
+  const { role, user, logout } = useAuthStore();
   const { toggleMobileOpen } = useSidebarStore();
   const { unreadCount } = useAppStore();
 
@@ -25,10 +34,18 @@ export function AppHeader() {
       .join(' ');
   };
 
-  const handleRoleToggle = () => {
-    const targetRole = role === 'admin' ? 'employee' : 'admin';
-    switchRole(targetRole);
-    snackbar.info(`Switched to ${targetRole === 'admin' ? '👨‍💼 Admin / HR Officer' : '👤 Employee'} portal view.`);
+  const handleMyProfileClick = () => {
+    if (role === 'admin') {
+      router.push('/admin/profile');
+    } else {
+      router.push('/employee/profile');
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    snackbar.info('Logged out successfully');
+    router.push('/');
   };
 
   return (
@@ -64,27 +81,22 @@ export function AppHeader() {
         />
       </div>
 
-      {/* Right Section: Actions & Role Switcher */}
+      {/* Right Section: Actions & Profile Dropdown */}
       <div className="flex items-center gap-2 md:gap-3">
-        {/* Role Quick Toggle */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRoleToggle}
-          className="hidden sm:flex items-center gap-1.5 text-xs font-medium border-accent/40 hover:bg-accent/10"
-        >
+        {/* Static Role View Badge (No switching inside portal) */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
           {role === 'admin' ? (
             <>
-              <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-              <span>👨‍💼 Admin View</span>
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Admin View</span>
             </>
           ) : (
             <>
-              <UserCheck className="h-3.5 w-3.5 text-accent" />
-              <span>👤 Employee View</span>
+              <UserCheck className="h-3.5 w-3.5" />
+              <span>Employee View</span>
             </>
           )}
-        </Button>
+        </div>
 
         {/* Notifications Icon with Badge */}
         <Button
@@ -105,20 +117,45 @@ export function AppHeader() {
         {/* Theme Toggle */}
         <ThemeToggle />
 
-        {/* User Profile Avatar Pill */}
-        <div className="flex items-center gap-2 pl-2 border-l border-border">
-          <div className="h-8 w-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden">
-            {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-            ) : (
-              'US'
-            )}
-          </div>
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold leading-tight">{user?.name}</span>
-            <span className="text-[10px] text-muted-foreground capitalize">{role}</span>
-          </div>
-        </div>
+        {/* User Profile Avatar Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-2 pl-2 outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-accent rounded-full p-1 transition-colors hover:bg-muted/50"
+            >
+              <div className="h-8 w-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center font-bold text-accent text-xs overflow-hidden shrink-0">
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+                ) : (
+                  user?.name?.substring(0, 2).toUpperCase() || 'US'
+                )}
+              </div>
+              <div className="hidden sm:flex flex-col text-left">
+                <span className="text-xs font-semibold leading-tight">{user?.name}</span>
+                <span className="text-[10px] text-muted-foreground capitalize">{role}</span>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 mt-1">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{user?.name}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleMyProfileClick} className="cursor-pointer gap-2">
+              <User className="h-4 w-4 text-accent" />
+              <span>My Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
+              <LogOut className="h-4 w-4" />
+              <span>Log Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
