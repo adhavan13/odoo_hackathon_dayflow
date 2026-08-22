@@ -8,37 +8,28 @@ export interface ChatMessage {
   category?: 'attendance' | 'leave' | 'payroll' | 'employee' | 'policy' | 'general';
 }
 
-interface Suggestion {
-  id: string;
-  label: string;
-  query: string;
-  category: string;
-}
-
 interface AiAssistantState {
   isOpen: boolean;
   isMinimized: boolean;
   messages: ChatMessage[];
-  suggestions: Suggestion[];
   isLoading: boolean;
   inputQuery: string;
   toggleOpen: () => void;
   toggleMinimize: () => void;
   setInputQuery: (query: string) => void;
   sendMessage: (customQuery?: string) => Promise<void>;
-  fetchSuggestions: () => Promise<void>;
   fetchHistory: () => Promise<void>;
   clearHistory: () => Promise<void>;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
-const defaultSuggestions: Suggestion[] = [
-  { id: 's1', label: "Today's Attendance Summary", query: "Give me a summary of employee check-ins and absences for today.", category: 'attendance' },
-  { id: 's2', label: 'Pending Leave Applications', query: 'Which employees have pending leave requests waiting for approval?', category: 'leave' },
-  { id: 's3', label: 'Monthly Payroll Overview', query: 'What is the current monthly payroll expenditure breakdown?', category: 'payroll' },
-  { id: 's4', label: 'Employee Directory Stats', query: 'Show a breakdown of active employees by department.', category: 'employee' },
-];
+const getAuthHeaders = (): Record<string, string> => {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+};
 
 export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
   isOpen: false,
@@ -47,12 +38,11 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
     {
       id: 'welcome_msg',
       sender: 'assistant',
-      message: "👋 **Hello! I am your Dayflow HR AI Assistant.**\n\nHow can I help you today? You can ask me about employee records, live attendance, pending leaves, payroll, or company policies.",
+      message: "👋 **Welcome to Dayflow HR Assistant.**\n\nI am connected to your live MongoDB workspace database. Ask me any question about employees, attendance logs, leave requests, or payroll records.",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       category: 'general',
     },
   ],
-  suggestions: defaultSuggestions,
   isLoading: false,
   inputQuery: '',
 
@@ -60,29 +50,10 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
   toggleMinimize: () => set((state) => ({ isMinimized: !state.isMinimized })),
   setInputQuery: (query: string) => set({ inputQuery: query }),
 
-  fetchSuggestions: async () => {
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const res = await fetch(`${BACKEND_URL}/ai-assistant/suggestions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data)) {
-          set({ suggestions: data.data });
-        }
-      }
-    } catch {
-      // Keep default suggestions fallback
-    }
-  },
-
   fetchHistory: async () => {
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (!token) return;
       const res = await fetch(`${BACKEND_URL}/ai-assistant/history`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(),
       });
       if (res.ok) {
         const data = await res.json();
@@ -97,8 +68,8 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
           set({ messages: formatted });
         }
       }
-    } catch {
-      // Ignore if offline
+    } catch (err) {
+      console.warn('Failed to fetch AI chat history:', err);
     }
   },
 
@@ -120,12 +91,11 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
     }));
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const res = await fetch(`${BACKEND_URL}/ai-assistant/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ query }),
       });
@@ -137,7 +107,7 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
             id: data.data.id || `a_${Date.now()}`,
             sender: 'assistant',
             message: data.data.message,
-            timestamp: new Date(data.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date(data.data.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             category: data.data.category,
           };
           set((state) => ({
@@ -147,40 +117,23 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
           return;
         }
       }
-    } catch {
-      // Fallback response generator if server is disconnected
+    } catch (error) {
+      console.error('Error sending query to AI assistant endpoint:', error);
     }
 
-    // Dynamic Client-side Fallback
-    setTimeout(() => {
-      const lower = query.toLowerCase();
-      let fallbackText = "🤖 I am currently running in offline preview mode. Connect to backend MongoDB API for live workspace calculations!";
-      let category: ChatMessage['category'] = 'general';
+    // Error fallback if endpoint could not be reached
+    const errorMsg: ChatMessage = {
+      id: `a_${Date.now()}`,
+      sender: 'assistant',
+      message: "⚠️ Could not connect to the Dayflow Backend service. Please ensure the backend server is running on port 4000.",
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      category: 'general',
+    };
 
-      if (lower.includes('attendance') || lower.includes('check-in')) {
-        category = 'attendance';
-        fallbackText = "📊 **Attendance Intelligence (Preview)**\n\n• **Workforce Present Today:** 3/3 employees (100%)\n• **Check-ins Logged:** Alex Rivera (09:00 AM), Sarah Jenkins (08:45 AM), Michael Chen (09:30 AM - Late)\n• **Absences:** 0 recorded today.";
-      } else if (lower.includes('leave')) {
-        category = 'leave';
-        fallbackText = "🗓️ **Leave Management (Preview)**\n\n• **Pending Approvals:** 1 request\n  - *Alex Rivera*: Casual Leave (2026-08-25 to 2026-08-27, 3 days)\n• **Approved Recently:** Michael Chen (Sick Leave, 2 days)";
-      } else if (lower.includes('payroll') || lower.includes('salary')) {
-        category = 'payroll';
-        fallbackText = "💰 **Payroll Overview (Preview)**\n\n• **Total Expenditure:** $145,200 / month\n• **Disbursed Payslips:** Alex Rivera ($9,200), Sarah Jenkins ($11,500)\n• **Status:** Active & fully audited";
-      }
-
-      const assistantMsg: ChatMessage = {
-        id: `a_${Date.now()}`,
-        sender: 'assistant',
-        message: fallbackText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        category,
-      };
-
-      set((state) => ({
-        messages: [...state.messages, assistantMsg],
-        isLoading: false,
-      }));
-    }, 600);
+    set((state) => ({
+      messages: [...state.messages, errorMsg],
+      isLoading: false,
+    }));
   },
 
   clearHistory: async () => {
@@ -189,22 +142,19 @@ export const useAiAssistantStore = create<AiAssistantState>((set, get) => ({
         {
           id: 'welcome_msg_reset',
           sender: 'assistant',
-          message: "🧹 Chat history cleared. How can I assist you next?",
+          message: "Chat history cleared. What would you like to query from MongoDB?",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           category: 'general',
         },
       ],
     });
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (token) {
-        await fetch(`${BACKEND_URL}/ai-assistant/history`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      }
-    } catch {
-      // Ignore
+      await fetch(`${BACKEND_URL}/ai-assistant/history`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+    } catch (err) {
+      console.warn('Failed to clear history:', err);
     }
   },
 }));

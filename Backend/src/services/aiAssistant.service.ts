@@ -1,5 +1,9 @@
 import { getDatabase } from '../config/database';
 import { config } from '../config/env.config';
+import { EmployeeService } from './employee.service';
+import { AttendanceService } from './attendance.service';
+import { LeaveService } from './leave.service';
+import { PayrollService } from './payroll.service';
 
 export interface ChatMessage {
   id: string;
@@ -17,108 +21,96 @@ export class AiAssistantService {
   }
 
   /**
-   * Quick suggestions based on user role
+   * Suggestions (empty list per user request to remove pre-defined questions)
    */
-  static getSuggestions(role: 'HR' | 'EMPLOYEE' | string) {
-    if (role === 'HR' || role === 'admin') {
-      return [
-        {
-          id: 'sugg-1',
-          label: "Today's Attendance Summary",
-          query: "Give me a summary of employee check-ins and absences for today.",
-          category: 'attendance',
-        },
-        {
-          id: 'sugg-2',
-          label: 'Pending Leave Applications',
-          query: 'Which employees have pending leave requests waiting for approval?',
-          category: 'leave',
-        },
-        {
-          id: 'sugg-3',
-          label: 'Monthly Payroll Overview',
-          query: 'What is the current monthly payroll expenditure breakdown?',
-          category: 'payroll',
-        },
-        {
-          id: 'sugg-4',
-          label: 'Employee Directory Stats',
-          query: 'Show a breakdown of active employees by department.',
-          category: 'employee',
-        },
-      ];
-    }
-
-    return [
-      {
-        id: 'sugg-emp-1',
-        label: 'My Leave Balance',
-        query: 'What is my remaining paid, sick, and casual leave balance?',
-        category: 'leave',
-      },
-      {
-        id: 'sugg-emp-2',
-        label: "Today's Check-in Status",
-        query: 'Did I check in today and how many hours have I logged?',
-        category: 'attendance',
-      },
-      {
-        id: 'sugg-emp-3',
-        label: 'Latest Salary Slip',
-        query: 'Show details of my latest generated salary slip.',
-        category: 'payroll',
-      },
-      {
-        id: 'sugg-emp-4',
-        label: 'Company Time-off Policy',
-        query: 'What is the company policy regarding sick leaves and holidays?',
-        category: 'policy',
-      },
-    ];
+  static getSuggestions(_role: string) {
+    return [];
   }
 
   /**
-   * Fetch live workspace context from MongoDB collections
+   * Fetch comprehensive workspace data from all MongoDB collections
    */
-  private static async getWorkspaceContext() {
+  private static async getComprehensiveWorkspaceContext() {
     const db = getDatabase();
     const today = new Date().toISOString().split('T')[0];
 
-    // 1. Employees
+    // Ensure database seed data is populated across all services
+    try {
+      await EmployeeService.getAllEmployees();
+      await AttendanceService.getHistory();
+      await LeaveService.getLeaveRequests();
+      await PayrollService.getSalarySlips();
+    } catch {
+      // Continue even if seed methods fail
+    }
+
+    // 1. Employees Collection
     const employees = await db.collection('employees').find({}).toArray();
-    const employeeSummary = employees.map((e: any) => ({
+    const employeeList = employees.map((e: any) => ({
       id: e.id,
       code: e.employeeCode || e.id,
       name: e.name,
       email: e.email,
+      role: e.role,
       department: e.department,
       designation: e.designation,
       status: e.status,
+      joinDate: e.joinDate,
+      phone: e.phone,
     }));
 
-    // 2. Attendance
-    const attendanceLogs = await db.collection('attendance').find({}).toArray();
-    const todayLogs = attendanceLogs.filter((log: any) => log.date === today);
+    // 2. Users Collection (Auth)
+    const users = await db.collection('users').find({}).toArray();
+    const userSummary = users.map((u: any) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      companyId: u.companyId,
+      status: u.status,
+    }));
 
-    // 3. Leave Requests
+    // 3. Companies Collection
+    const companies = await db.collection('companies').find({}).toArray();
+
+    // 4. Attendance Collection
+    const attendanceLogs = await db.collection('attendance').find({}).toArray();
+    const todayAttendance = attendanceLogs.filter((log: any) => log.date === today);
+
+    // 5. Leave Requests Collection
     const leaveRequests = await db.collection('leave_requests').find({}).toArray();
 
-    // 4. Salary Slips
+    // 6. Salary Slips & Structures Collection
     const salarySlips = await db.collection('salary_slips').find({}).toArray();
+    const salaryStructures = await db.collection('salary_structures').find({}).toArray();
 
     return {
-      todayDate: today,
-      totalEmployees: employees.length,
-      employees: employeeSummary,
-      todayAttendance: todayLogs,
-      allAttendanceCount: attendanceLogs.length,
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        currentDate: today,
+      },
+      company: companies[0] || { name: 'Dayflow HRMS', code: 'DAYFLOW' },
+      summary: {
+        totalEmployees: employees.length,
+        totalUsers: users.length,
+        todayAttendanceCount: todayAttendance.length,
+        presentToday: todayAttendance.filter((a: any) => a.status === 'present').length,
+        lateToday: todayAttendance.filter((a: any) => a.status === 'late').length,
+        absentToday: employees.length - todayAttendance.length,
+        pendingLeaves: leaveRequests.filter((l: any) => l.status === 'pending').length,
+        approvedLeaves: leaveRequests.filter((l: any) => l.status === 'approved').length,
+        totalPayslips: salarySlips.length,
+      },
+      employees: employeeList,
+      users: userSummary,
+      attendanceLogs: {
+        today: todayAttendance,
+        allLogs: attendanceLogs,
+      },
       leaveRequests,
-      salarySlips,
-      companyPolicies: {
-        workingHours: '09:00 AM - 05:30 PM (Mon-Fri)',
-        gracePeriodMinutes: 15,
-        leaveQuota: '18 Paid Leaves, 12 Casual Leaves, 10 Sick Leaves annually',
-        payrollCycle: 'Last working day of each month',
+      payroll: {
+        salarySlips,
+        salaryStructures,
       },
     };
   }
@@ -130,15 +122,15 @@ export class AiAssistantService {
     const lowerQuery = query.toLowerCase();
     let category: ChatMessage['category'] = 'general';
 
-    if (lowerQuery.includes('attendance') || lowerQuery.includes('check-in') || lowerQuery.includes('late')) {
+    if (lowerQuery.includes('attendance') || lowerQuery.includes('check-in') || lowerQuery.includes('late') || lowerQuery.includes('absent')) {
       category = 'attendance';
     } else if (lowerQuery.includes('leave') || lowerQuery.includes('time-off') || lowerQuery.includes('vacation')) {
       category = 'leave';
-    } else if (lowerQuery.includes('payroll') || lowerQuery.includes('salary') || lowerQuery.includes('pay')) {
+    } else if (lowerQuery.includes('payroll') || lowerQuery.includes('salary') || lowerQuery.includes('pay') || lowerQuery.includes('slip')) {
       category = 'payroll';
-    } else if (lowerQuery.includes('employee') || lowerQuery.includes('staff') || lowerQuery.includes('department')) {
+    } else if (lowerQuery.includes('employee') || lowerQuery.includes('staff') || lowerQuery.includes('department') || lowerQuery.includes('team')) {
       category = 'employee';
-    } else if (lowerQuery.includes('policy') || lowerQuery.includes('hours') || lowerQuery.includes('rule')) {
+    } else if (lowerQuery.includes('policy') || lowerQuery.includes('hours') || lowerQuery.includes('rule') || lowerQuery.includes('overtime')) {
       category = 'policy';
     }
 
@@ -156,21 +148,22 @@ export class AiAssistantService {
 
     try {
       // Gather live context from MongoDB
-      const contextData = await this.getWorkspaceContext();
+      const contextData = await this.getComprehensiveWorkspaceContext();
 
-      const systemPrompt = `You are Dayflow HR AI, an intelligent, professional HR Management System Assistant (similar to Keka HR).
-You are assisting an user named "${userName || 'User'}" with role "${role}".
+      const systemPrompt = `You are Dayflow HR Assistant, an intelligent, authoritative HR Management System assistant.
+You are assisting user "${userName || 'User'}" with role "${role}".
 
-REAL-TIME WORKSPACE DATA FROM MONGODB DATABASE:
+REAL-TIME MONGODB DATABASE CONTEXT:
 ${JSON.stringify(contextData, null, 2)}
 
 INSTRUCTIONS:
-1. Answer the user's question accurately using the live MongoDB workspace data provided above.
-2. Format your response cleanly using GitHub Markdown (use bold text, lists, bullet points, and emojis).
-3. If asked about attendance, leave requests, payroll, or employees, cite precise numbers, names, and statuses from the database.
-4. Maintain a helpful, professional, and friendly tone.`;
+1. Answer the user's question directly and accurately based ONLY on the live MongoDB database context provided above.
+2. If asked "How many employees are there?", check contextData.summary.totalEmployees or count contextData.employees and report the exact number (e.g. "There are currently 3 registered employees in the system...").
+3. Always list specific names, IDs, departments, check-in times, leave dates, or salary figures when applicable.
+4. Format your response cleanly using Github Markdown (bold text, lists, tables if appropriate).
+5. If the user asks a question whose data is missing in MongoDB, clearly state what records exist in MongoDB.`;
 
-      // Call Groq API via fetch
+      // Call Groq API with openai/gpt-oss-120b model
       const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -183,8 +176,8 @@ INSTRUCTIONS:
             { role: 'system', content: systemPrompt },
             { role: 'user', content: query },
           ],
-          temperature: 0.3,
-          max_tokens: 1024,
+          temperature: 0.2,
+          max_tokens: 1200,
         }),
       });
 
@@ -192,17 +185,18 @@ INSTRUCTIONS:
         const groqData: any = await groqResponse.json();
         const content = groqData.choices?.[0]?.message?.content;
         if (content && typeof content === 'string') {
-          // Clean up reasoning blocks if any
           responseText = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
         }
+      } else {
+        console.warn('Groq API HTTP error:', groqResponse.status, await groqResponse.text());
       }
     } catch (err) {
-      console.error('Groq API Error, falling back to local context solver:', err);
+      console.error('Groq API call error:', err);
     }
 
-    // Fallback if Groq response is empty
+    // Fallback if Groq API call fails
     if (!responseText) {
-      responseText = await this.fallbackContextSolver(query, userName);
+      responseText = await this.dynamicDbFallback(query);
     }
 
     const assistantMsg: ChatMessage = {
@@ -212,7 +206,7 @@ INSTRUCTIONS:
       message: responseText,
       timestamp: new Date().toISOString(),
       category,
-      metadata: { role, processedWith: 'groq-gpt-oss-120b' },
+      metadata: { role, queryTime: new Date().toISOString() },
     };
 
     await this.historyCollection().insertOne(assistantMsg);
@@ -220,33 +214,32 @@ INSTRUCTIONS:
   }
 
   /**
-   * Fallback solver in case Groq API is unreachable
+   * Direct MongoDB Dynamic Fallback Query
    */
-  private static async fallbackContextSolver(query: string, userName?: string): Promise<string> {
+  private static async dynamicDbFallback(query: string): Promise<string> {
     const db = getDatabase();
-    const lowerQuery = query.toLowerCase();
-    const today = new Date().toISOString().split('T')[0];
+    const lower = query.toLowerCase();
 
-    if (lowerQuery.includes('attendance') || lowerQuery.includes('check-in')) {
-      const logs = await db.collection('attendance').find({}).toArray();
-      const todayLogs = logs.filter((log: any) => log.date === today);
-      return `📊 **Attendance Report (${today})**\n\n` +
-        `• **Active Records Today:** ${todayLogs.length}\n` +
-        `• **Present Employees:** ${todayLogs.filter((l: any) => l.status === 'present').length}\n\n` +
-        (todayLogs.length > 0
-          ? todayLogs.map((l: any) => `- **${l.employeeName}**: Check-in at ${l.checkIn || 'N/A'}`).join('\n')
-          : 'No check-ins logged for today yet.');
-    } else if (lowerQuery.includes('leave')) {
-      const leaves = await db.collection('leave_requests').find({}).toArray();
-      const pending = leaves.filter((l: any) => l.status === 'pending');
-      return `🗓️ **Leave Management Overview**\n\n` +
-        `• **Pending Approvals:** ${pending.length}\n` +
-        (pending.length > 0
-          ? pending.map((l: any) => `- **${l.employeeName}**: ${l.days} days (${l.type})`).join('\n')
-          : '🎉 No pending leave requests.');
+    const employees = await db.collection('employees').find({}).toArray();
+    const attendance = await db.collection('attendance').find({}).toArray();
+    const leaves = await db.collection('leave_requests').find({}).toArray();
+    const slips = await db.collection('salary_slips').find({}).toArray();
+
+    if (lower.includes('employee') || lower.includes('how many')) {
+      return `There are currently **${employees.length} employees** in the database:\n\n` +
+        employees.map((e: any) => `• **${e.name}** (${e.designation} - ${e.department})`).join('\n');
+    } else if (lower.includes('attendance') || lower.includes('check-in')) {
+      return `Attendance records found: **${attendance.length} entries**:\n\n` +
+        attendance.map((a: any) => `• **${a.employeeName}**: ${a.checkIn || 'Not checked in'} (${a.status})`).join('\n');
+    } else if (lower.includes('leave')) {
+      return `Leave requests found: **${leaves.length} entries**:\n\n` +
+        leaves.map((l: any) => `• **${l.employeeName}**: ${l.type} leave (${l.status})`).join('\n');
+    } else if (lower.includes('payroll') || lower.includes('salary')) {
+      return `Salary slips found: **${slips.length} entries**:\n\n` +
+        slips.map((s: any) => `• **${s.employeeName}**: $${s.netPay} (${s.month} ${s.year})`).join('\n');
     }
 
-    return `🤖 **Hello ${userName || 'User'}! I am your Dayflow HR AI Assistant.**\n\nHow can I help you today? Ask me about attendance, leave requests, payroll, or employees!`;
+    return `Found ${employees.length} employees, ${attendance.length} attendance records, ${leaves.length} leave requests, and ${slips.length} payslips in MongoDB.`;
   }
 
   /**
