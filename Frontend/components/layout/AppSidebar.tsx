@@ -9,7 +9,6 @@ import {
   Clock,
   CalendarDays,
   Banknote,
-  BarChart3,
   Bell,
   Settings,
   User,
@@ -73,15 +72,6 @@ const adminNavConfig: NavGroup[] = [
     ],
   },
   {
-    title: 'Reports & Analytics',
-    icon: BarChart3,
-    items: [
-      { title: 'Workforce Analytics', href: '/admin/reports/workforce-analytics' },
-      { title: 'Attendance Analytics', href: '/admin/reports/attendance-analytics' },
-      { title: 'Payroll Reports', href: '/admin/reports/payroll-reports' },
-    ],
-  },
-  {
     title: 'Notifications',
     icon: Bell,
     items: [
@@ -92,9 +82,7 @@ const adminNavConfig: NavGroup[] = [
     title: 'Settings',
     icon: Settings,
     items: [
-      { title: 'Organization Settings', href: '/admin/settings/organization' },
-      { title: 'Role & Permissions', href: '/admin/settings/roles-permissions' },
-      { title: 'Profile', href: '/admin/settings/profile' },
+      { title: 'Organization & System Settings', href: '/admin/settings/organization' },
     ],
   },
 ];
@@ -146,14 +134,6 @@ const employeeNavConfig: NavGroup[] = [
     icon: Bell,
     items: [
       { title: 'Announcements', href: '/employee/notifications/announcements' },
-    ],
-  },
-  {
-    title: 'Settings',
-    icon: Settings,
-    items: [
-      { title: 'Account Settings', href: '/employee/settings/account' },
-      { title: 'Profile Settings', href: '/employee/settings/profile' },
     ],
   },
 ];

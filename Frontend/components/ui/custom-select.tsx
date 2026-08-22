@@ -14,9 +14,10 @@ export interface SelectOption {
   value: string;
 }
 
-interface CustomSelectProps {
+export interface CustomSelectProps {
   value: string;
-  onValueChange: (val: string) => void;
+  onValueChange?: (val: string) => void;
+  onChange?: (val: string) => void;
   options: SelectOption[];
   placeholder?: string;
   className?: string;
@@ -26,13 +27,19 @@ interface CustomSelectProps {
 export function CustomSelect({
   value,
   onValueChange,
+  onChange,
   options,
   placeholder = 'Select option...',
   className = 'w-full text-xs h-9',
   size = 'default',
 }: CustomSelectProps) {
+  const handleValueChange = (val: string) => {
+    onValueChange?.(val);
+    onChange?.(val);
+  };
+
   return (
-    <Select value={value} onValueChange={onValueChange}>
+    <Select value={value} onValueChange={handleValueChange}>
       <SelectTrigger size={size} className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>

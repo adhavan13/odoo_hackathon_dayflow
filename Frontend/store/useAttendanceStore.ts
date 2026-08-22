@@ -13,6 +13,8 @@ export interface AttendanceRecord {
   workHours?: string;
   extraHours?: string;
   status: 'Present' | 'Late' | 'Absent' | 'Half Day' | 'On Leave';
+  workSummaryNote?: string;
+  checkInTimestamp?: number;
 }
 
 export interface AttendanceState {
@@ -24,15 +26,52 @@ export interface AttendanceState {
   fetchAttendance: () => Promise<void>;
   fetchToday: () => Promise<void>;
   checkIn: () => Promise<void>;
-  checkOut: () => Promise<void>;
+  checkOut: (workSummaryNote?: string) => Promise<void>;
   addAttendanceRecord: (rec: Omit<AttendanceRecord, 'id'>) => void;
   // Compatibility aliases
   isPunchedIn?: boolean;
   todayRecord?: { inTime?: string; outTime?: string };
   checkTodayAttendance?: () => Promise<void>;
   punchIn?: () => Promise<void>;
-  punchOut?: () => Promise<void>;
+  punchOut?: (note?: string) => Promise<void>;
 }
+
+const SESSION_KEY = 'dayflow_attendance_session';
+
+const getInitialSession = () => {
+  if (typeof window === 'undefined') {
+    return { isCheckedIn: false, checkInTime: null, checkInTimestamp: null };
+  }
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (parsed.date === todayStr && parsed.isCheckedIn) {
+        return {
+          isCheckedIn: true,
+          checkInTime: parsed.checkInTime || null,
+          checkInTimestamp: parsed.checkInTimestamp || null,
+        };
+      }
+    }
+  } catch {}
+  return { isCheckedIn: false, checkInTime: null, checkInTimestamp: null };
+};
+
+const saveSessionToStorage = (isCheckedIn: boolean, checkInTime: string | null, checkInTimestamp: number | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (isCheckedIn) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ isCheckedIn, checkInTime, checkInTimestamp, date: todayStr }));
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+    }
+  } catch {}
+};
+
+const initialSession = getInitialSession();
 
 export const useAttendanceStore = create<AttendanceState>((set, get) => ({
   records: [
@@ -47,6 +86,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       workHours: '09:00',
       extraHours: '01:00',
       status: 'Present',
+      workSummaryNote: 'Completed frontend authentication flow and connected user profile endpoints.',
     },
     {
       id: 'att_102',
@@ -59,6 +99,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       workHours: '09:00',
       extraHours: '01:00',
       status: 'Present',
+      workSummaryNote: 'Refactored navigation layout sidebar and fixed responsive dark mode styling.',
     },
     {
       id: 'att_103',
@@ -71,22 +112,24 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       workHours: '08:30',
       extraHours: '00:30',
       status: 'Late',
+      workSummaryNote: 'Reviewed Q4 product roadmap deliverables and updated user story documentation.',
     },
   ],
-  isCheckedIn: false,
-  checkInTime: null,
-  checkInTimestamp: null,
+  isCheckedIn: initialSession.isCheckedIn,
+  checkInTime: initialSession.checkInTime,
+  checkInTimestamp: initialSession.checkInTimestamp,
   isLoading: false,
 
   fetchAttendance: async () => {
     set({ isLoading: true });
     try {
       const response = await api.get('/attendance/history');
-      if (response.data && Array.isArray(response.data)) {
-        set({ records: response.data });
+      const data = response.data?.data || response.data;
+      if (Array.isArray(data)) {
+        set({ records: data });
       }
     } catch (error: any) {
-      // Offline fallback
+      // Retain existing records on offline
     } finally {
       set({ isLoading: false });
     }
@@ -95,15 +138,25 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
   fetchToday: async () => {
     try {
       const response = await api.get('/attendance/today');
-      if (response.data && response.data.checkIn) {
+      const att = response.data?.attendance || response.data;
+      if (att && att.checkIn && !att.checkOut) {
+        const checkInTimestamp = att.checkInTimestamp || get().checkInTimestamp || Date.now();
         set({
           isCheckedIn: true,
-          checkInTime: response.data.checkIn,
-          checkInTimestamp: Date.now() - 3600000,
+          checkInTime: att.checkIn,
+          checkInTimestamp,
         });
+        saveSessionToStorage(true, att.checkIn, checkInTimestamp);
+      } else if (att && att.checkOut) {
+        set({
+          isCheckedIn: false,
+          checkInTime: null,
+          checkInTimestamp: null,
+        });
+        saveSessionToStorage(false, null, null);
       }
     } catch (error: any) {
-      // Keep current state
+      // Retain current session from localStorage
     }
   },
 
@@ -112,7 +165,11 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const nowTimestamp = Date.now();
     try {
-      await api.post('/attendance/punch-in');
+      const res = await api.post('/attendance/punch-in');
+      const backendAtt = res.data?.attendance;
+      if (backendAtt?.checkInTimestamp) {
+        // use backend timestamp if provided
+      }
     } catch (error: any) {
       // Offline fallback
     } finally {
@@ -127,6 +184,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         status: 'Present',
         workHours: '00:00:01',
         extraHours: '00:00',
+        checkInTimestamp: nowTimestamp,
       };
 
       set((state) => ({
@@ -136,15 +194,27 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         records: [newRec, ...state.records],
         isLoading: false,
       }));
+      saveSessionToStorage(true, nowTime, nowTimestamp);
       snackbar.success(`Successfully checked IN at ${nowTime}!`);
     }
   },
 
-  checkOut: async () => {
+  checkOut: async (workSummaryNote?: string) => {
     set({ isLoading: true });
     const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const currentStartTimestamp = get().checkInTimestamp;
+
+    // Calculate worked duration text
+    let durationText = '08:00';
+    if (currentStartTimestamp) {
+      const diffMs = Math.max(0, Date.now() - currentStartTimestamp);
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      durationText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
     try {
-      await api.post('/attendance/punch-out');
+      await api.post('/attendance/punch-out', { workSummaryNote });
     } catch (error: any) {
       // Offline fallback
     } finally {
@@ -153,11 +223,19 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         checkInTime: null,
         checkInTimestamp: null,
         records: state.records.map((r, idx) =>
-          idx === 0 ? { ...r, checkOut: nowTime, workHours: '08:30', extraHours: '00:30' } : r
+          idx === 0
+            ? {
+                ...r,
+                checkOut: nowTime,
+                workHours: durationText,
+                workSummaryNote: workSummaryNote || r.workSummaryNote || 'Daily work shift completed.',
+              }
+            : r
         ),
         isLoading: false,
       }));
-      snackbar.info('Successfully checked OUT.');
+      saveSessionToStorage(false, null, null);
+      snackbar.info('Successfully checked OUT. Work summary saved!');
     }
   },
 
@@ -169,6 +247,6 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
 
   // Alias implementations for compatibility
   punchIn: async () => get().checkIn(),
-  punchOut: async () => get().checkOut(),
+  punchOut: async (note?: string) => get().checkOut(note),
   checkTodayAttendance: async () => get().fetchToday(),
 }));

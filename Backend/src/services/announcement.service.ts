@@ -102,7 +102,7 @@ export class AnnouncementService {
     try {
       const col = await this.getCollection();
       if (col) {
-        await col.deleteOne({ $or: [{ id }, { _id: id }] });
+        await col.deleteOne({ $or: [{ id }, { _id: id as any }] });
       }
     } catch (e) {
       console.warn("Announcement mongo delete error:", e);

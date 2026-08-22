@@ -29,7 +29,8 @@ export const punchIn = asyncHandler(
 
 export const punchOut = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const result = await AttendanceService.checkOut(currentUser(req).id);
+    const { workSummaryNote } = req.body || {};
+    const result = await AttendanceService.checkOut(currentUser(req).id, workSummaryNote);
     return res
       .status(200)
       .json({

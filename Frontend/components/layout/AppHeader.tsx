@@ -18,6 +18,7 @@ import { useAiAssistantStore } from '@/store/useAiAssistantStore';
 import { ThemeToggle } from '@/components/dashboard/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CheckOutModal } from '@/components/attendance/CheckOutModal';
 import { snackbar } from '@/utils/snackbar';
 import {
   DropdownMenu,
@@ -123,6 +124,7 @@ export function AppHeader() {
     : activeUser?.role || role;
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
 
   const getBreadcrumbTitle = (): string => {
     const segments = pathname.split('/').filter(Boolean);
@@ -206,8 +208,8 @@ export function AppHeader() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={checkOut}
-                  className="h-7 text-xs px-2.5 border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 cursor-pointer gap-1"
+                  onClick={() => setIsCheckOutModalOpen(true)}
+                  className="h-7 text-xs px-2.5 font-bold border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:text-white cursor-pointer transition-all gap-1"
                 >
                   Check OUT →
                 </Button>
@@ -344,11 +346,13 @@ export function AppHeader() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="my-1.5" />
-              <DropdownMenuItem onClick={handleMyProfileClick} className="cursor-pointer gap-2 py-2">
-                <User className="h-4 w-4 shrink-0 text-accent" />
+              <DropdownMenuItem onClick={handleMyProfileClick} className="group cursor-pointer gap-2 py-2 focus:bg-accent focus:text-accent-foreground">
+                <User className="h-4 w-4 shrink-0 text-accent group-focus:text-accent-foreground group-hover:text-accent-foreground transition-colors" />
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold">My Profile & Settings</span>
-                  <span className="text-[10px] text-muted-foreground">View personal details & security</span>
+                  <span className="text-[10px] text-muted-foreground group-focus:text-accent-foreground/80 group-hover:text-accent-foreground/80 transition-colors">
+                    View personal details & security
+                  </span>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="my-1.5" />
@@ -392,6 +396,9 @@ export function AppHeader() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Check Out Work Summary Note Modal */}
+      <CheckOutModal isOpen={isCheckOutModalOpen} onClose={() => setIsCheckOutModalOpen(false)} />
     </>
   );
 }

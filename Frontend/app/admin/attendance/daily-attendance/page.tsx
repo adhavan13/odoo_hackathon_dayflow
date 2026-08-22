@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { PageContainer } from '@/components/ui/page-container';
-import { useAttendanceStore } from '@/store';
+import { useAttendanceStore, AttendanceRecord } from '@/store';
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,12 +13,21 @@ import {
   CheckCircle2,
   Clock,
   Plane,
-  AlertCircle,
+  FileText,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { DatePicker } from '@/components/ui/date-picker';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function AdminDailyAttendancePage() {
   const { records } = useAttendanceStore();
@@ -28,6 +37,7 @@ export default function AdminDailyAttendancePage() {
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedRecordForNote, setSelectedRecordForNote] = useState<AttendanceRecord | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,7 +47,8 @@ export default function AdminDailyAttendancePage() {
   const filteredRecords = records.filter((rec) => {
     const matchesSearch =
       rec.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-      (rec.department && rec.department.toLowerCase().includes(search.toLowerCase()));
+      (rec.department && rec.department.toLowerCase().includes(search.toLowerCase())) ||
+      (rec.workSummaryNote && rec.workSummaryNote.toLowerCase().includes(search.toLowerCase()));
     const matchesDept = departmentFilter === 'all' || rec.department === departmentFilter;
     const matchesStatus = statusFilter === 'all' || rec.status.toLowerCase() === statusFilter.toLowerCase();
 
@@ -55,8 +66,8 @@ export default function AdminDailyAttendancePage() {
 
   return (
     <PageContainer
-      title="Attendance Management"
-      subtitle="Monitor workforce daily attendance, check-in/out times, overtime extra hours, and payable days impact"
+      title="Attendance & Daily Work Logs"
+      subtitle="Monitor workforce daily attendance, check-in/out times, worked shift hours, and employee daily work summaries"
       badge="Admin"
     >
       <div className="space-y-6">
@@ -98,42 +109,37 @@ export default function AdminDailyAttendancePage() {
             </div>
             <div>
               <p className="text-xs font-semibold text-accent">Average Work Time</p>
-              <p className="text-xl font-extrabold text-foreground">08:45 Hrs</p>
+              <p className="text-xl font-extrabold text-accent">08h 30m</p>
             </div>
           </div>
         </div>
 
-        {/* Toolbar Controls (Matching Wireframe 1 input_file_0.png) */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-2xs">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            {/* Navigation: [<] [>] [Date v] [Day] */}
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <div className="flex items-center gap-1">
-                <Button size="icon" variant="outline" className="h-9 w-9 cursor-pointer text-foreground">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="outline" className="h-9 w-9 cursor-pointer text-foreground">
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Date Selector Dropdown */}
+        {/* Date Selector & Search Filters Toolbar */}
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-2xs space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Date Selection Controls */}
+            <div className="flex items-center gap-2">
               <DatePicker
                 value={selectedDate}
                 onChange={setSelectedDate}
-                className="h-9"
+                className="h-9 w-40 text-xs font-bold"
               />
-
-              <span className="px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-xs font-bold uppercase tracking-wider">
-                Day
-              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+                className="h-9 text-xs font-bold px-3 hover:bg-accent/10 hover:text-accent"
+              >
+                Today
+              </Button>
             </div>
 
-            {/* Searchbar */}
-            <div className="relative w-full md:w-80">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search employee name..."
+                type="search"
+                placeholder="Search employee name, department, or work note keywords..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-9 text-xs bg-muted/20"
@@ -155,10 +161,11 @@ export default function AdminDailyAttendancePage() {
                 { label: 'All Departments', value: 'all' },
                 { label: 'Software Engineering', value: 'Software Engineering' },
                 { label: 'Human Resources', value: 'Human Resources' },
+                { label: 'Product Management', value: 'Product Management' },
                 { label: 'Sales & Marketing', value: 'Sales & Marketing' },
               ]}
               size="sm"
-              className="w-44 text-xs h-8"
+              className="w-48 text-xs h-8"
             />
 
             <CustomSelect
@@ -178,21 +185,23 @@ export default function AdminDailyAttendancePage() {
 
         {/* Selected Date Header */}
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-base font-extrabold text-foreground">22, October 2025</h3>
-          <span className="text-xs text-muted-foreground">Attendance Basis for Payroll Computation</span>
+          <h3 className="text-base font-extrabold text-foreground">Workforce Attendance & Daily Notes Table</h3>
+          <span className="text-xs text-muted-foreground font-mono">
+            {filteredRecords.length} record{filteredRecords.length !== 1 ? 's' : ''} found
+          </span>
         </div>
 
-        {/* Attendance List Table (Matching Wireframe 1 input_file_0.png) */}
+        {/* Attendance & Work Logs List Table */}
         <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-muted/50 border-b border-border text-muted-foreground font-semibold uppercase tracking-wider">
                 <tr>
-                  <th className="p-4">Emp</th>
-                  <th className="p-4">Check In</th>
-                  <th className="p-4">Check Out</th>
-                  <th className="p-4">Work Hours</th>
-                  <th className="p-4">Extra Hours</th>
+                  <th className="p-4">Employee</th>
+                  <th className="p-4">Date</th>
+                  <th className="p-4">Check In / Out</th>
+                  <th className="p-4">Worked Hours</th>
+                  <th className="p-4">Daily Work Summary Note</th>
                   <th className="p-4 text-right">Status</th>
                 </tr>
               </thead>
@@ -208,23 +217,18 @@ export default function AdminDailyAttendancePage() {
                           </div>
                           <div>
                             <p className="font-bold text-foreground">{rec.employeeName}</p>
-                            <p className="text-[11px] text-muted-foreground">{rec.department || 'Department'}</p>
+                            <p className="text-[11px] text-muted-foreground">{rec.department || 'Software Engineering'}</p>
                           </div>
                         </div>
                       </td>
 
-                      {/* Check In */}
-                      <td className="p-4 font-mono font-bold text-foreground">{rec.checkIn}</td>
+                      {/* Date */}
+                      <td className="p-4 font-mono font-bold text-foreground">{rec.date}</td>
 
-                      {/* Check Out */}
-                      <td className="p-4 font-mono font-bold text-foreground">
-                        {rec.checkOut ? (
-                          rec.checkOut
-                        ) : (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold animate-pulse">
-                            Active (In Shift)
-                          </span>
-                        )}
+                      {/* Check In / Out */}
+                      <td className="p-4 font-mono text-xs">
+                        <div>In: <span className="font-bold text-accent">{rec.checkIn}</span></div>
+                        <div>Out: <span className="font-bold text-muted-foreground">{rec.checkOut || 'Active Shift'}</span></div>
                       </td>
 
                       {/* Work Hours */}
@@ -232,16 +236,34 @@ export default function AdminDailyAttendancePage() {
                         {rec.workHours || '08:30'}
                       </td>
 
-                      {/* Extra Hours */}
-                      <td className="p-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {rec.extraHours || '00:00'}
+                      {/* Daily Work Summary Note Column */}
+                      <td className="p-4 max-w-sm">
+                        {rec.workSummaryNote ? (
+                          <div className="flex items-start gap-2 bg-muted/30 p-2.5 rounded-xl border border-border/80 text-xs text-foreground/90">
+                            <FileText className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+                            <div className="flex-1 overflow-hidden">
+                              <p className="line-clamp-2 text-xs font-medium leading-relaxed">
+                                {rec.workSummaryNote}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedRecordForNote(rec)}
+                                className="text-[11px] font-bold text-accent hover:underline flex items-center gap-1 mt-1 cursor-pointer"
+                              >
+                                <Eye className="h-3 w-3" /> Read Full Note
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground italic text-[11px]">No summary note submitted</span>
+                        )}
                       </td>
 
                       {/* Status */}
                       <td className="p-4 text-right">
                         {rec.status === 'Present' && (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                             {rec.checkOut ? 'Present' : 'Active Shift'}
                           </span>
                         )}
@@ -250,9 +272,9 @@ export default function AdminDailyAttendancePage() {
                             Late
                           </span>
                         )}
-                        {rec.status === 'On Leave' && (
+                        {(rec.status === 'Absent' || rec.status === 'On Leave') && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/15 text-blue-500 border border-blue-500/30">
-                            On Leave
+                            {rec.status}
                           </span>
                         )}
                       </td>
@@ -260,8 +282,8 @@ export default function AdminDailyAttendancePage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground text-xs">
-                      No employee attendance records found for this criteria.
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      No attendance & work log records found matching your filters.
                     </td>
                   </tr>
                 )}
@@ -269,34 +291,93 @@ export default function AdminDailyAttendancePage() {
             </table>
           </div>
 
-          {/* Pagination Controls */}
-          <div className="p-4 border-t border-border bg-muted/20 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">
-              Showing page {currentPage} of {totalPages}
+          {/* Table Pagination Footer */}
+          <div className="flex items-center justify-between p-4 border-t border-border bg-card">
+            <span className="text-xs text-muted-foreground font-mono">
+              Page {currentPage} of {totalPages}
             </span>
             <div className="flex items-center gap-2">
               <Button
-                size="sm"
                 variant="outline"
-                disabled={currentPage === 1}
+                size="sm"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="h-8 text-xs cursor-pointer"
+                disabled={currentPage === 1}
+                className="h-8 text-xs gap-1 cursor-pointer"
               >
-                Previous
+                <ChevronLeft className="h-3.5 w-3.5" /> Previous
               </Button>
               <Button
-                size="sm"
                 variant="outline"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-                className="h-8 text-xs cursor-pointer"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="h-8 text-xs gap-1 cursor-pointer"
               >
-                Next
+                Next <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Admin View Work Summary Note Full Dialog */}
+      {selectedRecordForNote && (
+        <Dialog open={!!selectedRecordForNote} onOpenChange={() => setSelectedRecordForNote(null)}>
+          <DialogContent className="sm:max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl">
+            <DialogHeader className="space-y-2 border-b border-border pb-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-accent/20 text-accent flex items-center justify-center font-bold text-base">
+                  {selectedRecordForNote.employeeName.substring(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-extrabold text-foreground">
+                    {selectedRecordForNote.employeeName}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    {selectedRecordForNote.department || 'Department'} • {selectedRecordForNote.date}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-4 py-3 text-xs">
+              <div className="grid grid-cols-3 gap-2 bg-muted/40 p-3 rounded-2xl border border-border/80 text-center font-mono">
+                <div>
+                  <span className="text-[10px] text-muted-foreground block">Check-In</span>
+                  <span className="font-bold text-accent">{selectedRecordForNote.checkIn}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block">Check-Out</span>
+                  <span className="font-bold text-foreground">{selectedRecordForNote.checkOut || 'In Shift'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block">Work Hours</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{selectedRecordForNote.workHours || '08:30'}</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 text-accent" />
+                  Work Summary & Daily Deliverables Note
+                </Label>
+                <div className="bg-muted/30 p-4 rounded-2xl border border-border text-foreground leading-relaxed whitespace-pre-wrap font-medium">
+                  {selectedRecordForNote.workSummaryNote}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                onClick={() => setSelectedRecordForNote(null)}
+                className="bg-accent text-accent-foreground text-xs font-bold w-full cursor-pointer"
+              >
+                Close Work Note
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </PageContainer>
   );
 }

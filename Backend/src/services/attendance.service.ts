@@ -10,6 +10,8 @@ export interface AttendanceLog {
   date: string;
   checkIn: string | null;
   checkOut: string | null;
+  checkInTimestamp?: number | null;
+  workSummaryNote?: string | null;
   status: AttendanceStatus;
   workMinutes: number;
   breakMinutes: number;
@@ -122,6 +124,8 @@ export class AttendanceService {
       date: dateString(now),
       checkIn: timeString(now),
       checkOut: null,
+      checkInTimestamp: now.getTime(),
+      workSummaryNote: null,
       status: "PRESENT",
       workMinutes: 0,
       breakMinutes: 0,
@@ -134,7 +138,7 @@ export class AttendanceService {
     return record;
   }
 
-  static async checkOut(employeeId: string) {
+  static async checkOut(employeeId: string, workSummaryNote?: string) {
     const record = await this.findToday(employeeId);
     if (!record?.checkIn)
       throw new ApiError(400, "You must check in before checking out.");
@@ -149,6 +153,7 @@ export class AttendanceService {
       checkOut,
       workMinutes,
       extraMinutes: Math.max(0, workMinutes - 8 * 60),
+      workSummaryNote: workSummaryNote || null,
       updatedAt: new Date(),
     };
     await getAttendance().updateOne({ id: record.id }, { $set: updated });
@@ -216,6 +221,8 @@ export class AttendanceService {
       date: dateString(),
       checkIn: record?.checkIn || null,
       checkOut: record?.checkOut || null,
+      checkInTimestamp: record?.checkInTimestamp || (record?.createdAt ? new Date(record.createdAt).getTime() : null),
+      workSummaryNote: record?.workSummaryNote || null,
       status: record?.status || "ABSENT",
       workHours: formatMinutes(record?.workMinutes || 0),
       breakHours: formatMinutes(record?.breakMinutes || 0),
